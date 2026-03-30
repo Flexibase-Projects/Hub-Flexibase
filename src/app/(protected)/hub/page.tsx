@@ -1,4 +1,3 @@
-import AnnouncementRoundedIcon from "@mui/icons-material/AnnouncementRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import {
@@ -16,7 +15,7 @@ import {
 } from "@mui/material";
 
 import { requireViewer } from "@/modules/auth/server";
-import { markNoticeReadAction } from "@/modules/hub/actions";
+import { BannerCarousel } from "@/modules/hub/components/banner-carousel";
 import { getHubHomeData } from "@/modules/hub/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
 import {
@@ -31,12 +30,6 @@ import { PageFeedbackAlert } from "@/shared/ui/components/page-feedback";
 interface HubPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
-
-const noticeTone = {
-  critical: "error",
-  important: "warning",
-  info: "info",
-} as const;
 
 export default async function HubPage({ searchParams }: HubPageProps) {
   const viewer = await requireViewer();
@@ -53,7 +46,6 @@ export default async function HubPage({ searchParams }: HubPageProps) {
     viewer.departmentIds,
     viewer.isAdmin
   );
-  const readNoticeIds = new Set(hubData.noticeReads.map((notice) => notice.noticeId));
 
   return (
     <Stack spacing={4}>
@@ -64,125 +56,19 @@ export default async function HubPage({ searchParams }: HubPageProps) {
       <Stack spacing={1}>
         <Typography variant="h3">Hub principal</Typography>
         <Typography color="text.secondary">
-          Comunicados importantes, sistemas por departamento e documentos internos em uma única
-          navegação.
+          Comunicados, sistemas por departamento e documentos internos em uma unica navegacao.
         </Typography>
       </Stack>
 
       <Stack spacing={2}>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <AnnouncementRoundedIcon color="warning" />
-          <Typography variant="h4">Comunicados prioritários</Typography>
-        </Stack>
-
-        {hubData.notices.length === 0 ? (
-          <EmptyState
-            title="Nenhum comunicado ativo"
-            description="Quando houver um aviso importante, ele aparecerá aqui no topo do HUB."
-          />
-        ) : (
-          <Grid container spacing={2}>
-            {hubData.notices.map((notice) => (
-              <Grid key={notice.id} size={{ xs: 12, md: 6 }}>
-                <Card>
-                  <CardContent>
-                    <Stack spacing={2}>
-                      <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        justifyContent="space-between"
-                        spacing={1}
-                      >
-                        <Stack spacing={1}>
-                          <Chip
-                            size="small"
-                            color={noticeTone[notice.severity]}
-                            label={
-                              notice.severity === "critical"
-                                ? "Crítico"
-                                : notice.severity === "important"
-                                  ? "Importante"
-                                  : "Informativo"
-                            }
-                          />
-                          <Typography variant="h5">{notice.title}</Typography>
-                        </Stack>
-                        <Typography color="text.secondary">
-                          {formatDate(notice.createdAt)}
-                        </Typography>
-                      </Stack>
-                      <Typography color="text.secondary">{notice.body}</Typography>
-                      <form action={markNoticeReadAction}>
-                        <input type="hidden" name="noticeId" value={notice.id} />
-                        <Button
-                          type="submit"
-                          variant={readNoticeIds.has(notice.id) ? "outlined" : "contained"}
-                        >
-                          {readNoticeIds.has(notice.id)
-                            ? "Leitura confirmada"
-                            : "Confirmar leitura"}
-                        </Button>
-                      </form>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </Stack>
-
-      <Stack spacing={2}>
-        <Typography variant="h4">Banners e destaques</Typography>
+        <Typography variant="h4">Banner principal</Typography>
         {hubData.banners.length === 0 ? (
           <EmptyState
             title="Nenhum banner publicado"
-            description="Os destaques institucionais aparecerão aqui quando forem adicionados."
+            description="O carrossel principal aparecera aqui quando houver banners cadastrados."
           />
         ) : (
-          <Grid container spacing={2}>
-            {hubData.banners.map((banner) => (
-              <Grid key={banner.id} size={{ xs: 12, md: 6 }}>
-                <Card
-                  sx={{
-                    minHeight: 220,
-                    background: banner.imageUrl
-                      ? `linear-gradient(135deg, rgba(15,76,129,0.86), rgba(18,58,94,0.92)), url(${banner.imageUrl}) center/cover`
-                      : "linear-gradient(135deg, #0F4C81 0%, #123A5E 100%)",
-                    color: "common.white",
-                  }}
-                >
-                  <CardContent sx={{ height: "100%" }}>
-                    <Stack spacing={1.5} justifyContent="space-between" sx={{ height: "100%" }}>
-                      <Stack spacing={1}>
-                        <Chip
-                          label={
-                            banner.tone === "success"
-                              ? "Destaque"
-                              : banner.tone === "warning"
-                                ? "Atenção"
-                                : "Comunicado"
-                          }
-                          color="secondary"
-                          sx={{ width: "fit-content" }}
-                        />
-                        <Typography variant="h4">{banner.title}</Typography>
-                        {banner.subtitle ? (
-                          <Typography sx={{ color: "rgba(255,255,255,0.86)" }}>
-                            {banner.subtitle}
-                          </Typography>
-                        ) : null}
-                      </Stack>
-                      {banner.body ? (
-                        <Typography sx={{ color: "rgba(255,255,255,0.82)" }}>
-                          {banner.body}
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <BannerCarousel banners={hubData.banners} />
         )}
       </Stack>
 
@@ -191,7 +77,7 @@ export default async function HubPage({ searchParams }: HubPageProps) {
         {groupedSystems.length === 0 ? (
           <EmptyState
             title="Nenhum sistema publicado"
-            description="Quando os links internos forem cadastrados no admin, eles aparecerão aqui."
+            description="Quando os links internos forem cadastrados no admin, eles aparecerao aqui."
           />
         ) : (
           <Stack spacing={3}>
@@ -251,8 +137,8 @@ export default async function HubPage({ searchParams }: HubPageProps) {
         <Typography variant="h4">Documentos</Typography>
         {visibleDocuments.length === 0 ? (
           <EmptyState
-            title="Nenhum documento disponível"
-            description="Os documentos internos vão aparecer aqui conforme forem cadastrados."
+            title="Nenhum documento disponivel"
+            description="Os documentos internos vao aparecer aqui conforme forem cadastrados."
           />
         ) : (
           <Grid container spacing={2}>
@@ -269,7 +155,7 @@ export default async function HubPage({ searchParams }: HubPageProps) {
                         <Stack spacing={1}>
                           <Chip
                             size="small"
-                            label={document.isRestricted ? "Restrito por área" : "Liberado"}
+                            label={document.isRestricted ? "Restrito por area" : "Liberado"}
                             color={document.isRestricted ? "warning" : "success"}
                           />
                           <Typography variant="h5">{document.title}</Typography>
