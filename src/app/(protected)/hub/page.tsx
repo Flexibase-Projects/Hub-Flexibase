@@ -259,6 +259,21 @@ export default async function HubPage({ searchParams }: HubPageProps) {
           </Grid>
         )}
       </Stack>
+
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}>
+          <Box
+            sx={{
+              minHeight: 120,
+              borderRadius: 4,
+              border: "1px solid",
+              borderColor: "divider",
+              background:
+                "linear-gradient(180deg, rgba(15,76,129,0.03) 0%, rgba(15,76,129,0.01) 100%)",
+            }}
+          />
+        </Grid>
+      </Grid>
     </Stack>
   );
 }
