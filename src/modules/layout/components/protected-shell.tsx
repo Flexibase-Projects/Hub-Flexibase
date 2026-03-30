@@ -1,6 +1,6 @@
 "use client";
 
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import {
@@ -8,10 +8,12 @@ import {
   Button,
   Chip,
   Container,
+  Divider,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -46,6 +48,7 @@ function ShellNav() {
             href={item.href}
             variant={isActive ? "contained" : "text"}
             startIcon={item.icon}
+            color="inherit"
           >
             {item.label}
           </Button>
@@ -56,7 +59,7 @@ function ShellNav() {
 }
 
 interface ProtectedShellProps {
-  viewer: ViewerContext;
+  viewer?: ViewerContext | null;
   children: React.ReactNode;
 }
 
@@ -68,46 +71,92 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
           background:
             "radial-gradient(circle at top left, rgba(15,76,129,0.22), transparent 36%), linear-gradient(135deg, #0F4C81 0%, #123A5E 54%, #1E293B 100%)",
           color: "common.white",
-          pb: 7,
+          boxShadow: "0 18px 48px rgba(15,76,129,0.18)",
         }}
       >
-        <Container maxWidth="xl" sx={{ pt: 4 }}>
-          <Stack spacing={3}>
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              justifyContent="space-between"
-              alignItems={{ xs: "flex-start", md: "center" }}
-              spacing={2}
-            >
-              <Stack spacing={1}>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <DashboardRoundedIcon />
-                  <Typography variant="overline">Flexibase HUB</Typography>
-                </Stack>
-                <Typography variant="h2">Tudo que a operação precisa, em um lugar.</Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.76)", maxWidth: 780 }}>
-                  Uma experiência interna mais rápida, organizada e agradável para acessar
-                  sistemas, documentos e comunicados.
+        <Container maxWidth="xl" sx={{ py: 1.5 }}>
+          <Stack spacing={1.5}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+              <Stack direction="row" spacing={1.25} alignItems="center">
+                <Box
+                  sx={{
+                    position: "relative",
+                    width: { xs: 112, sm: 136 },
+                    height: { xs: 34, sm: 40 },
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Image
+                    src="/flexibase-logo.png"
+                    alt="Flexibase"
+                    fill
+                    sizes="136px"
+                    style={{ objectFit: "contain" }}
+                    priority
+                  />
+                </Box>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}
+                >
+                  Hub
                 </Typography>
               </Stack>
-              <Stack spacing={1.5} alignItems={{ xs: "flex-start", md: "flex-end" }}>
-                <Chip
-                  label={viewer.isAdmin ? "Administrador" : "Colaborador"}
-                  color={viewer.isAdmin ? "secondary" : "default"}
-                />
-                <Typography>{viewer.displayName}</Typography>
-                <Typography sx={{ color: "rgba(255,255,255,0.76)" }}>
-                  {viewer.email}
-                </Typography>
-                <LogoutButton />
+
+              <Stack direction="row" spacing={1} alignItems="center">
+                {viewer ? (
+                  <>
+                    <Chip
+                      label={viewer.isAdmin ? "Administrador" : "Colaborador"}
+                      color={viewer.isAdmin ? "secondary" : "default"}
+                      size="small"
+                    />
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      startIcon={<AccountCircleRoundedIcon />}
+                      sx={{
+                        borderColor: "rgba(255,255,255,0.28)",
+                        color: "common.white",
+                        minWidth: "fit-content",
+                      }}
+                    >
+                      {viewer.displayName}
+                    </Button>
+                    <LogoutButton />
+                  </>
+                ) : (
+                  <Button
+                    component={Link}
+                    href="/login"
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<AccountCircleRoundedIcon />}
+                    sx={{
+                      borderColor: "rgba(255,255,255,0.28)",
+                      color: "common.white",
+                    }}
+                  >
+                    Entrar
+                  </Button>
+                )}
               </Stack>
             </Stack>
-            <ShellNav />
+
+            {viewer ? (
+              <>
+                <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
+                <ShellNav />
+              </>
+            ) : null}
           </Stack>
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ mt: -4 }}>
+      <Container maxWidth="xl" sx={{ mt: 2.5 }}>
         <Paper
           elevation={0}
           sx={{
