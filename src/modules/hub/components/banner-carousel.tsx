@@ -39,7 +39,20 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
   }, [banners.length]);
 
   if (banners.length === 0) {
-    return null;
+    return (
+      <Box
+        sx={{
+          minHeight: { xs: 220, md: 280 },
+          borderRadius: 6,
+          overflow: "hidden",
+          background:
+            "linear-gradient(135deg, rgba(15,76,129,0.08) 0%, rgba(18,58,94,0.12) 56%, rgba(30,41,59,0.14) 100%)",
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: "0 18px 42px rgba(15,76,129,0.08)",
+        }}
+      />
+    );
   }
 
   const activeBanner = banners[activeIndex] ?? banners[0];

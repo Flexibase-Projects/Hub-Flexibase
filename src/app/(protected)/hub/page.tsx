@@ -54,23 +54,13 @@ export default async function HubPage({ searchParams }: HubPageProps) {
       {hubData.loadError ? <Alert severity="warning">{hubData.loadError}</Alert> : null}
 
       <Stack spacing={1}>
-        <Typography variant="h3">Hub principal</Typography>
+        <Typography variant="h4">Hub principal</Typography>
         <Typography color="text.secondary">
           Comunicados, sistemas por departamento e documentos internos em uma unica navegacao.
         </Typography>
       </Stack>
 
-      <Stack spacing={2}>
-        <Typography variant="h4">Banner principal</Typography>
-        {hubData.banners.length === 0 ? (
-          <EmptyState
-            title="Nenhum banner publicado"
-            description="O carrossel principal aparecera aqui quando houver banners cadastrados."
-          />
-        ) : (
-          <BannerCarousel banners={hubData.banners} />
-        )}
-      </Stack>
+      <BannerCarousel banners={hubData.banners} />
 
       <Stack spacing={2}>
         <Typography variant="h4">Sistemas internos</Typography>
