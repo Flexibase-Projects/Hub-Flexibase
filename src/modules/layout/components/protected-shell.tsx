@@ -76,8 +76,24 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
       >
         <Container maxWidth="xl" sx={{ py: 1.5 }}>
           <Stack spacing={1.5}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                columnGap: 2,
+              }}
+            >
               <Stack direction="row" spacing={1.25} alignItems="center">
+                <Typography
+                  variant="subtitle1"
+                  sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}
+                >
+                  Hub
+                </Typography>
+              </Stack>
+
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Box
                   sx={{
                     position: "relative",
@@ -98,15 +114,9 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                     priority
                   />
                 </Box>
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}
-                >
-                  Hub
-                </Typography>
-              </Stack>
+              </Box>
 
-              <Stack direction="row" spacing={1} alignItems="center">
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
                 {viewer ? (
                   <>
                     <Chip
@@ -141,10 +151,10 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                     }}
                   >
                     Entrar
-                  </Button>
+                    </Button>
                 )}
               </Stack>
-            </Stack>
+            </Box>
 
             {viewer ? (
               <>
