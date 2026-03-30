@@ -38,7 +38,7 @@ export async function signInAction(
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
@@ -50,7 +50,7 @@ export async function signInAction(
     };
   }
 
-  await ensureOwnProfile();
+  await ensureOwnProfile(data.user);
 
   redirect("/hub");
 }

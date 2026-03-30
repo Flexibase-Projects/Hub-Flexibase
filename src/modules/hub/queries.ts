@@ -16,7 +16,7 @@ function createEmptyHubData(loadError: string | null = null): HubHomeData {
   };
 }
 
-export async function getHubHomeData(viewer: ViewerContext): Promise<HubHomeData> {
+export async function getHubHomeData(viewer?: ViewerContext | null): Promise<HubHomeData> {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
@@ -43,10 +43,9 @@ export async function getHubHomeData(viewer: ViewerContext): Promise<HubHomeData
       .eq("is_active", true)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true }),
-    hub
-      .from("hub_notice_reads")
-      .select("*")
-      .eq("user_id", viewer.userId),
+    viewer
+      ? hub.from("hub_notice_reads").select("*").eq("user_id", viewer.userId)
+      : Promise.resolve({ data: [], error: null }),
     hub
       .from("hub_banners")
       .select("*")

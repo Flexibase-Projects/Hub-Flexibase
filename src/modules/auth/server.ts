@@ -1,57 +1,11 @@
+import type { User } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
 import type { HubRoleKey, ViewerContext } from "@/shared/types/hub";
 
-async function getRoleKeys(userId: string) {
-  const supabase = await createServerSupabaseClient();
-
-  if (!supabase) {
-    return [] as HubRoleKey[];
-  }
-
-  const hub = supabase.schema(getSupabaseEnv().schema);
-
-  const { data: roles } = await hub
-    .from("hub_roles")
-    .select("id, key")
-    .is("deleted_at", null);
-
-  const { data: userRoles } = await hub
-    .from("hub_user_roles")
-    .select("role_id")
-    .eq("user_id", userId)
-    .is("deleted_at", null);
-
-  const rolesMap = new Map(
-    (roles ?? []).map((role) => [role.id as string, role.key as HubRoleKey])
-  );
-
-  return (userRoles ?? [])
-    .map((entry) => rolesMap.get(entry.role_id as string))
-    .filter((entry): entry is HubRoleKey => Boolean(entry));
-}
-
-async function getDepartmentIds(userId: string) {
-  const supabase = await createServerSupabaseClient();
-
-  if (!supabase) {
-    return [] as string[];
-  }
-
-  const hub = supabase.schema(getSupabaseEnv().schema);
-
-  const { data } = await hub
-    .from("hub_user_departments")
-    .select("department_id")
-    .eq("user_id", userId)
-    .is("deleted_at", null);
-
-  return (data ?? []).map((entry) => entry.department_id as string);
-}
-
-export async function ensureOwnProfile() {
+export async function ensureOwnProfile(userOverride?: User | null) {
   const env = getSupabaseEnv();
   const supabase = await createServerSupabaseClient();
 
@@ -59,15 +13,9 @@ export async function ensureOwnProfile() {
     return;
   }
 
-  const [{ data: claimsData }, { data: userData }] = await Promise.all([
-    supabase.auth.getClaims(),
-    supabase.auth.getUser(),
-  ]);
+  const user = userOverride ?? (await supabase.auth.getUser()).data.user;
 
-  const user = userData.user;
-  const userId = claimsData?.claims?.sub;
-
-  if (!user || !userId) {
+  if (!user) {
     return;
   }
 
@@ -75,7 +23,7 @@ export async function ensureOwnProfile() {
 
   await hub.from("hub_user_profiles").upsert(
     {
-      id: userId,
+      id: user.id,
       email: user.email ?? "",
       full_name:
         (user.user_metadata?.full_name as string | undefined) ??
@@ -95,29 +43,42 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
     return null;
   }
 
-  const [{ data: claimsData }, { data: userData }] = await Promise.all([
-    supabase.auth.getClaims(),
-    supabase.auth.getUser(),
-  ]);
-
-  const userId = claimsData?.claims?.sub;
+  const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
 
-  if (!userId || !user) {
+  if (!user) {
     return null;
   }
 
   const hub = supabase.schema(env.schema);
-  const [{ data: profile }, roleKeys, departmentIds] = await Promise.all([
+  const [profileResult, rolesResult, userRolesResult, departmentsResult] = await Promise.all([
+    hub.from("hub_user_profiles").select("*").eq("id", user.id).maybeSingle(),
+    hub.from("hub_roles").select("id, key").is("deleted_at", null),
     hub
-      .from("hub_user_profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle(),
-    getRoleKeys(userId),
-    getDepartmentIds(userId),
+      .from("hub_user_roles")
+      .select("role_id")
+      .eq("user_id", user.id)
+      .is("deleted_at", null),
+    hub
+      .from("hub_user_departments")
+      .select("department_id")
+      .eq("user_id", user.id)
+      .is("deleted_at", null),
   ]);
 
+  const rolesMap = new Map(
+    (rolesResult.data ?? []).map((role) => [role.id as string, role.key as HubRoleKey])
+  );
+
+  const roleKeys = (userRolesResult.data ?? [])
+    .map((entry) => rolesMap.get(entry.role_id as string))
+    .filter((entry): entry is HubRoleKey => Boolean(entry));
+
+  const departmentIds = (departmentsResult.data ?? []).map(
+    (entry) => entry.department_id as string
+  );
+
+  const profile = profileResult.data;
   const displayName =
     (profile?.full_name as string | undefined) ||
     (user.user_metadata?.full_name as string | undefined) ||
@@ -125,7 +86,7 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
     "Colaborador";
 
   return {
-    userId,
+    userId: user.id,
     email: user.email ?? "",
     displayName,
     isAdmin: roleKeys.includes("admin"),

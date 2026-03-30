@@ -27,7 +27,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { requireViewer } from "@/modules/auth/server";
+import { getViewerContext } from "@/modules/auth/server";
 import { BannerCarousel } from "@/modules/hub/components/banner-carousel";
 import { getHubHomeData } from "@/modules/hub/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
@@ -122,14 +122,14 @@ const indexedSystems = [
 ].sort((left, right) => left.title.localeCompare(right.title, "pt-BR"));
 
 export default async function HubPage({ searchParams }: HubPageProps) {
-  const viewer = await requireViewer();
+  const viewer = await getViewerContext();
   const feedback = await getPageFeedback(searchParams);
   const hubData = await getHubHomeData(viewer);
   const visibleDocuments = filterVisibleDocuments(
     hubData.documents,
     hubData.documentDepartmentMap,
-    viewer.departmentIds,
-    viewer.isAdmin
+    viewer?.departmentIds ?? [],
+    viewer?.isAdmin ?? false
   );
 
   return (

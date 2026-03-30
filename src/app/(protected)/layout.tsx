@@ -1,6 +1,6 @@
 import { Stack } from "@mui/material";
 
-import { requireViewer } from "@/modules/auth/server";
+import { getViewerContext } from "@/modules/auth/server";
 import { ProtectedShell } from "@/modules/layout/components/protected-shell";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { SetupState } from "@/shared/ui/components/setup-state";
@@ -20,7 +20,7 @@ export default async function ProtectedLayout({
     );
   }
 
-  const viewer = await requireViewer();
+  const viewer = await getViewerContext();
 
   return <ProtectedShell viewer={viewer}>{children}</ProtectedShell>;
 }
