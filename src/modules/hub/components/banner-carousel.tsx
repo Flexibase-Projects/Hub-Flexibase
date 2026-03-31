@@ -43,7 +43,7 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
       <Box
         sx={{
           minHeight: { xs: 220, md: 280 },
-          borderRadius: 6,
+          borderRadius: 2,
           overflow: "hidden",
           background:
             "linear-gradient(135deg, rgba(15,76,129,0.08) 0%, rgba(18,58,94,0.12) 56%, rgba(30,41,59,0.14) 100%)",
@@ -61,7 +61,7 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
     <Box
       sx={{
         minHeight: { xs: 240, md: 300 },
-        borderRadius: 6,
+        borderRadius: 2,
         overflow: "hidden",
         p: { xs: 3, md: 4 },
         background: activeBanner.imageUrl

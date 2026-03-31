@@ -1,12 +1,9 @@
 "use client";
 
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
-import HubRoundedIcon from "@mui/icons-material/HubRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import {
   Box,
   Button,
-  Chip,
   Container,
   Divider,
   Paper,
@@ -17,26 +14,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { LogoutButton } from "@/modules/auth/components/logout-button";
+import { ViewerMenu } from "@/modules/auth/components/viewer-menu";
 import type { ViewerContext } from "@/shared/types/hub";
 
-function ShellNav() {
+function ShellNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
-  const items = [
-    {
-      href: "/hub",
-      label: "Hub",
-      icon: <HubRoundedIcon fontSize="small" />,
-    },
-    {
-      href: "/admin",
-      label: "Admin",
-      icon: <SettingsRoundedIcon fontSize="small" />,
-    },
-  ];
+  const items = isAdmin
+    ? [
+        {
+          href: "/admin",
+          label: "Admin",
+        },
+      ]
+    : [];
 
   return (
+    items.length === 0 ? null :
     <Stack direction="row" spacing={1} flexWrap="wrap">
       {items.map((item) => {
         const isActive = pathname.startsWith(item.href);
@@ -47,8 +41,10 @@ function ShellNav() {
             component={Link}
             href={item.href}
             variant={isActive ? "contained" : "text"}
-            startIcon={item.icon}
             color="inherit"
+            sx={{
+              borderRadius: 2,
+            }}
           >
             {item.label}
           </Button>
@@ -79,12 +75,13 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
+                gridTemplateColumns: { xs: "1fr auto", md: "1fr auto 1fr" },
                 alignItems: "center",
                 columnGap: 2,
+                rowGap: 1.5,
               }}
             >
-              <Stack direction="row" spacing={1.25} alignItems="center">
+              <Stack direction="row" alignItems="center" sx={{ minHeight: 40 }}>
                 <Typography
                   variant="subtitle1"
                   sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}
@@ -116,28 +113,15 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                 </Box>
               </Box>
 
-              <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                justifyContent="flex-end"
+                sx={{ gridColumn: { xs: "2 / 3", md: "3 / 4" } }}
+              >
                 {viewer ? (
-                  <>
-                    <Chip
-                      label={viewer.isAdmin ? "Administrador" : "Colaborador"}
-                      color={viewer.isAdmin ? "secondary" : "default"}
-                      size="small"
-                    />
-                    <Button
-                      variant="outlined"
-                      color="inherit"
-                      startIcon={<AccountCircleRoundedIcon />}
-                      sx={{
-                        borderColor: "rgba(255,255,255,0.28)",
-                        color: "common.white",
-                        minWidth: "fit-content",
-                      }}
-                    >
-                      {viewer.displayName}
-                    </Button>
-                    <LogoutButton />
-                  </>
+                  <ViewerMenu viewer={viewer} />
                 ) : (
                   <Button
                     component={Link}
@@ -159,7 +143,7 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
             {viewer ? (
               <>
                 <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
-                <ShellNav />
+                <ShellNav isAdmin={viewer.isAdmin} />
               </>
             ) : null}
           </Stack>

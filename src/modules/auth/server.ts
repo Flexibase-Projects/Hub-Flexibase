@@ -7,6 +7,34 @@ import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
 import type { HubRoleKey, ViewerContext } from "@/shared/types/hub";
 
+function isHubRoleKey(value: unknown): value is HubRoleKey {
+  return value === "operator" || value === "employee" || value === "manager" || value === "admin";
+}
+
+function getMetadataRoleKeys(user: User): HubRoleKey[] {
+  const candidates = [
+    user.app_metadata?.role,
+    user.user_metadata?.role,
+    ...(Array.isArray(user.app_metadata?.roles) ? user.app_metadata.roles : []),
+    ...(Array.isArray(user.user_metadata?.roles) ? user.user_metadata.roles : []),
+  ];
+
+  const normalized = candidates
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.toLowerCase())
+    .filter(isHubRoleKey);
+
+  if (
+    user.app_metadata?.is_admin === true ||
+    user.user_metadata?.is_admin === true ||
+    normalized.includes("admin")
+  ) {
+    return [...new Set<HubRoleKey>([...normalized, "admin"])];
+  }
+
+  return [...new Set(normalized)];
+}
+
 export async function ensureOwnProfile(userOverride?: User | null) {
   const env = getSupabaseEnv();
   const supabase = await createServerSupabaseClient();
@@ -86,6 +114,8 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
   const roleKeys = (userRolesResult.data ?? [])
     .map((entry) => rolesMap.get(entry.role_id as string))
     .filter((entry): entry is HubRoleKey => Boolean(entry));
+  const metadataRoleKeys = getMetadataRoleKeys(user);
+  const effectiveRoleKeys = [...new Set<HubRoleKey>([...roleKeys, ...metadataRoleKeys])];
 
   const departmentIds = (departmentsResult.data ?? []).map(
     (entry) => entry.department_id as string
@@ -102,8 +132,8 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
     userId: user.id,
     email: user.email ?? "",
     displayName,
-    isAdmin: roleKeys.includes("admin"),
-    roleKeys,
+    isAdmin: effectiveRoleKeys.includes("admin"),
+    roleKeys: effectiveRoleKeys,
     departmentIds,
     profile: profile
       ? {
