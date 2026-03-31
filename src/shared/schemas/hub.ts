@@ -3,13 +3,13 @@ import { z } from "zod";
 export const loginSchema = z.object({
   email: z.string().trim().email("Informe um email válido."),
   password: z.string().min(6, "Informe sua senha."),
-  rememberEmail: z.coerce.boolean().default(true),
+  rememberLogin: z.coerce.boolean().default(false),
 });
 
 export const loginFormSchema = z.object({
   email: z.string().trim().email("Informe um email válido."),
   password: z.string().min(6, "Informe sua senha."),
-  rememberEmail: z.boolean(),
+  rememberLogin: z.boolean(),
 });
 
 export const departmentSchema = z.object({

@@ -18,7 +18,7 @@ export async function signInAction(
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
-    rememberEmail: formData.get("rememberEmail"),
+    rememberLogin: formData.get("rememberLogin"),
   });
 
   if (!parsed.success) {

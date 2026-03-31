@@ -29,16 +29,13 @@ export default async function HomePage() {
           <Typography variant="h3">Hub pronto para comecar</Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 720 }}>
             O usuario pode seguir para o hub sem login e so autenticar quando algum app realmente
-            exigir. Quando quiser acessar a conta, o atalho de conectar fica no canto superior
+            exigir. Quando quiser acessar a conta, o atalho de usuario fica no canto superior
             direito.
           </Typography>
         </Stack>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <Button href="/hub" variant="contained">
             Entrar sem login
-          </Button>
-          <Button href="/login" variant="outlined">
-            Conectar
           </Button>
         </Stack>
       </Stack>

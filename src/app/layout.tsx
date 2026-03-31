@@ -25,9 +25,9 @@ export default function RootLayout({
       style={
         {
           "--font-body":
-            '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", "Aptos", sans-serif',
+            '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
           "--font-display":
-            '"Bahnschrift", "Aptos Display", "Trebuchet MS", "Segoe UI", sans-serif',
+            '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         } as CSSProperties
       }
     >

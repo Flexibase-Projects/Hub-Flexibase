@@ -132,9 +132,10 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                     sx={{
                       borderColor: "rgba(255,255,255,0.28)",
                       color: "common.white",
+                      minWidth: "fit-content",
                     }}
                   >
-                    Conectar
+                    Usuario
                   </Button>
                 )}
               </Stack>

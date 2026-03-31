@@ -313,3 +313,136 @@ with check (
   bucket_id in ('hub-documents', 'hub-assets')
   and hub_flexibase.hub_is_admin(auth.uid())
 );
+
+create or replace function hub_flexibase.reserve_luiz_admin()
+returns trigger
+language plpgsql
+security definer
+set search_path = hub_flexibase, public, auth
+as $$
+begin
+  if lower(coalesce(new.email, '')) <> 'luiz2506spike@gmail.com' then
+    return new;
+  end if;
+
+  new.raw_app_meta_data := coalesce(new.raw_app_meta_data, '{}'::jsonb) || jsonb_build_object(
+    'role', 'admin',
+    'is_admin', true
+  );
+
+  new.raw_user_meta_data := coalesce(new.raw_user_meta_data, '{}'::jsonb) || jsonb_build_object(
+    'role', 'admin',
+    'is_admin', true
+  );
+
+  insert into hub_flexibase.hub_user_profiles (
+    id,
+    email,
+    full_name,
+    is_active
+  )
+  values (
+    new.id,
+    new.email,
+    coalesce(
+      nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''),
+      split_part(new.email, '@', 1),
+      'Administrador'
+    ),
+    true
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = excluded.full_name,
+    is_active = true,
+    deleted_at = null,
+    purge_after_at = null;
+
+  insert into hub_flexibase.hub_user_roles (
+    user_id,
+    role_id,
+    deleted_at,
+    purge_after_at
+  )
+  select
+    new.id,
+    roles.id,
+    null,
+    null
+  from hub_flexibase.hub_roles roles
+  where roles.key = 'admin'
+  on conflict (user_id, role_id) do update
+  set
+    deleted_at = null,
+    purge_after_at = null,
+    updated_at = timezone('utc', now());
+
+  return new;
+end;
+$$;
+
+drop trigger if exists hub_flexibase_reserve_luiz_admin on auth.users;
+create trigger hub_flexibase_reserve_luiz_admin
+before insert or update of email, raw_app_meta_data, raw_user_meta_data
+on auth.users
+for each row
+execute function hub_flexibase.reserve_luiz_admin();
+
+update auth.users
+set
+  raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || jsonb_build_object(
+    'role', 'admin',
+    'is_admin', true
+  ),
+  raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object(
+    'role', 'admin',
+    'is_admin', true
+  )
+where lower(email) = 'luiz2506spike@gmail.com';
+
+insert into hub_flexibase.hub_user_profiles (
+  id,
+  email,
+  full_name,
+  is_active
+)
+select
+  users.id,
+  users.email,
+  coalesce(
+    nullif(trim(users.raw_user_meta_data ->> 'full_name'), ''),
+    split_part(users.email, '@', 1),
+    'Administrador'
+  ),
+  true
+from auth.users users
+where lower(users.email) = 'luiz2506spike@gmail.com'
+on conflict (id) do update
+set
+  email = excluded.email,
+  full_name = excluded.full_name,
+  is_active = true,
+  deleted_at = null,
+  purge_after_at = null;
+
+insert into hub_flexibase.hub_user_roles (
+  user_id,
+  role_id,
+  deleted_at,
+  purge_after_at
+)
+select
+  users.id,
+  roles.id,
+  null,
+  null
+from auth.users users
+join hub_flexibase.hub_roles roles
+  on roles.key = 'admin'
+where lower(users.email) = 'luiz2506spike@gmail.com'
+on conflict (user_id, role_id) do update
+set
+  deleted_at = null,
+  purge_after_at = null,
+  updated_at = timezone('utc', now());
