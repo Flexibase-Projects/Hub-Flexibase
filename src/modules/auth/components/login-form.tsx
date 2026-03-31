@@ -81,9 +81,9 @@ export function LoginForm() {
     <Box component="form" action={formAction}>
       <Stack spacing={2.5}>
         <Stack spacing={1}>
-          <Typography variant="h3">Entrar no HUB</Typography>
+          <Typography variant="h3">Conectar conta</Typography>
           <Typography color="text.secondary">
-            Acesse sistemas, documentos e comunicados internos da Flexibase.
+            Use seu login apenas quando quiser identificar a sessao dentro do HUB.
           </Typography>
         </Stack>
 

@@ -10,6 +10,7 @@ const LAN_DEV_HOST_PATTERNS = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   allowedDevOrigins: LAN_DEV_HOST_PATTERNS,
   async rewrites() {
     return [{ source: "/favicon.ico", destination: "/icon.svg" }];

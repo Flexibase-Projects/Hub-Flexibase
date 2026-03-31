@@ -150,8 +150,8 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                       color: "common.white",
                     }}
                   >
-                    Entrar
-                    </Button>
+                    Conectar
+                  </Button>
                 )}
               </Stack>
             </Box>

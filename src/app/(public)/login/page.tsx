@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Container,
@@ -49,20 +50,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Flexibase | HUB interno
               </Typography>
               <Typography variant="h1" sx={{ fontSize: { xs: 42, md: 60 } }}>
-                Um ponto de entrada elegante para a rotina da empresa.
+                Escolha como quer entrar no HUB.
               </Typography>
               <Typography color="text.secondary" sx={{ maxWidth: 560 }}>
-                Organize o acesso a sistemas, documentos e comunicados sem sobrecarregar a
-                operação. O MVP já nasce preparado para crescer com módulos futuros.
+                Alguns apps podem abrir direto sem autenticacao. Quando algum deles precisar de
+                login, a conexao pode ser feita no proprio fluxo ou aqui no HUB.
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                {["Desktop-first", "MUI design system", "Supabase Auth + RLS"].map((item) => (
-                  <Card key={item} sx={{ borderRadius: 999 }}>
-                    <CardContent sx={{ py: 1.25, px: 2 }}>
-                      <Typography variant="body2">{item}</Typography>
-                    </CardContent>
-                  </Card>
-                ))}
+                {["Entrar sem barreira", "Conexao opcional", "Apps com login proprio"].map(
+                  (item) => (
+                    <Card key={item} sx={{ borderRadius: 999 }}>
+                      <CardContent sx={{ py: 1.25, px: 2 }}>
+                        <Typography variant="body2">{item}</Typography>
+                      </CardContent>
+                    </Card>
+                  )
+                )}
               </Stack>
             </Stack>
           </Grid>
@@ -71,13 +74,58 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                 <Stack spacing={2.5}>
                   <PageFeedbackAlert feedback={feedback} />
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          height: "100%",
+                          borderRadius: 5,
+                          borderColor: "divider",
+                          background:
+                            "linear-gradient(180deg, rgba(15,76,129,0.04) 0%, rgba(15,76,129,0.01) 100%)",
+                        }}
+                      >
+                        <CardContent sx={{ height: "100%" }}>
+                          <Stack spacing={2} justifyContent="space-between" sx={{ height: "100%" }}>
+                            <Stack spacing={1}>
+                              <Typography variant="h5">Entrar sem login</Typography>
+                              <Typography color="text.secondary">
+                                O usuario segue direto para o HUB. Se algum app exigir
+                                autenticacao, ele pede login no momento certo.
+                              </Typography>
+                            </Stack>
+                            <Button href="/hub" variant="contained" size="large">
+                              Ir para o hub
+                            </Button>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          height: "100%",
+                          borderRadius: 5,
+                          borderColor: "rgba(15,76,129,0.22)",
+                        }}
+                      >
+                        <CardContent sx={{ height: "100%" }}>
+                          <Stack spacing={1}>
+                            <Typography variant="h5">Conectar conta</Typography>
+                            <Typography color="text.secondary">
+                              Use este caminho quando quiser entrar identificado e liberar recursos
+                              protegidos do HUB.
+                            </Typography>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
                   {env.isConfigured ? <LoginForm /> : <SetupState />}
                   <Typography color="text.secondary">
-                    Esqueceu a senha?{" "}
-                    <MuiLink href="/forgot-password">
-                      Fale com o suporte
-                    </MuiLink>
-                    .
+                    Esqueceu a senha? <MuiLink href="/forgot-password">Fale com o suporte</MuiLink>.
                   </Typography>
                 </Stack>
               </CardContent>

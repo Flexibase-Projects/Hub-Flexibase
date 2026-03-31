@@ -26,15 +26,19 @@ export default async function HomePage() {
     <ProtectedShell>
       <Stack spacing={3}>
         <Stack spacing={1}>
-          <Typography variant="h3">Hub pronto para começar</Typography>
+          <Typography variant="h3">Hub pronto para comecar</Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 720 }}>
-            O sistema agora pode abrir sem exigir login de imediato. Quando o usuario quiser entrar
-            na conta dele, basta usar o botao de usuario no canto superior direito.
+            O usuario pode seguir para o hub sem login e so autenticar quando algum app realmente
+            exigir. Quando quiser acessar a conta, o atalho de conectar fica no canto superior
+            direito.
           </Typography>
         </Stack>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-          <Button href="/login" variant="contained">
-            Fazer login
+          <Button href="/hub" variant="contained">
+            Entrar sem login
+          </Button>
+          <Button href="/login" variant="outlined">
+            Conectar
           </Button>
         </Stack>
       </Stack>

@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { hasSupabaseAuthCookies } from "@/shared/lib/supabase/auth-cookies";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
 import type { HubRoleKey, ViewerContext } from "@/shared/types/hub";
@@ -37,9 +39,20 @@ export async function ensureOwnProfile(userOverride?: User | null) {
 
 export async function getViewerContext(): Promise<ViewerContext | null> {
   const env = getSupabaseEnv();
+
+  if (!env.isConfigured) {
+    return null;
+  }
+
+  const cookieStore = await cookies();
+
+  if (!hasSupabaseAuthCookies(cookieStore.getAll())) {
+    return null;
+  }
+
   const supabase = await createServerSupabaseClient();
 
-  if (!env.isConfigured || !supabase) {
+  if (!supabase) {
     return null;
   }
 
