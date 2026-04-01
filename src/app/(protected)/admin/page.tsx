@@ -19,31 +19,31 @@ export default async function AdminPage() {
     {
       title: "Sistemas",
       value: data.systems.length,
-      description: "Cards e links internos por departamento.",
+      description: "Links internos simples em ordem alfabetica.",
       href: "/admin/systems",
     },
     {
-      title: "Banners",
+      title: "Banner",
       value: data.banners.length,
-      description: "Destaques visuais e comunicados institucionais.",
+      description: "Imagem principal exibida no topo da home.",
       href: "/admin/banners",
     },
     {
       title: "Comunicados",
       value: data.notices.length,
-      description: "Avisos prioritários com confirmação de leitura.",
+      description: "Avisos e notificacoes para a home do hub.",
       href: "/admin/notices",
     },
     {
       title: "Documentos",
       value: data.documents.length,
-      description: "Arquivos internos com acesso aberto ou restrito.",
+      description: "Arquivos internos com titulo, categoria e descricao.",
       href: "/admin/documents",
     },
     {
-      title: "Usuários",
-      value: data.profiles.length,
-      description: "Perfis, papéis do hub e departamentos vinculados.",
+      title: "Usuarios",
+      value: data.adminUsers.length,
+      description: "Usuarios do Supabase Auth com toggle de admin.",
       href: "/admin/users",
     },
   ];
@@ -53,7 +53,7 @@ export default async function AdminPage() {
       <Stack spacing={1}>
         <Typography variant="h3">Painel administrativo</Typography>
         <Typography color="text.secondary">
-          Um admin único para operar o hub sem inflar a arquitetura com outro sistema paralelo.
+          Cadastros centrais do HUB com operacao simples e direta.
         </Typography>
       </Stack>
 

@@ -1,5 +1,4 @@
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import {
   Alert,
   Box,
@@ -15,14 +14,10 @@ import {
 
 import { getViewerContext } from "@/modules/auth/server";
 import { BannerCarousel } from "@/modules/hub/components/banner-carousel";
+import { SystemLinkButton } from "@/modules/hub/components/system-link-button";
 import { getHubHomeData } from "@/modules/hub/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
-import {
-  filterVisibleDocuments,
-  formatBytes,
-  formatDate,
-  groupSystemsByDepartment,
-} from "@/shared/lib/hub/utils";
+import { filterVisibleDocuments, formatBytes, formatDate } from "@/shared/lib/hub/utils";
 import { PageFeedbackAlert } from "@/shared/ui/components/page-feedback";
 
 interface HubPageProps {
@@ -68,10 +63,8 @@ export default async function HubPage({ searchParams }: HubPageProps) {
     viewer?.departmentIds ?? [],
     viewer?.isAdmin ?? false
   );
-  const groupedSystems = groupSystemsByDepartment(
-    hubData.departments,
-    hubData.systems,
-    hubData.systemDepartmentMap
+  const registeredSystems = [...hubData.systems].sort((left, right) =>
+    left.title.localeCompare(right.title, "pt-BR")
   );
 
   return (
@@ -83,7 +76,7 @@ export default async function HubPage({ searchParams }: HubPageProps) {
       <Stack spacing={1}>
         <Typography variant="h4">Hub principal</Typography>
         <Typography color="text.secondary">
-          Comunicados, sistemas por departamento e documentos internos em uma unica navegacao.
+          Comunicados, sistemas internos e documentos em uma unica navegacao.
         </Typography>
       </Stack>
 
@@ -92,115 +85,71 @@ export default async function HubPage({ searchParams }: HubPageProps) {
       <Stack spacing={2}>
         <Typography variant="h4">Sistemas internos</Typography>
 
+        {registeredSystems.length > 0 ? (
+          <Box
+            sx={{
+              ...corporatePanelSx,
+              p: { xs: 2, md: 2.5 },
+            }}
+          >
+            <Stack spacing={2}>
+              <Stack spacing={0.5}>
+                <Typography variant="h5">Sistemas cadastrados</Typography>
+                <Typography color="text.secondary">
+                  Itens administrados pelo painel aparecem aqui em ordem alfabetica.
+                </Typography>
+              </Stack>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    lg: "repeat(3, minmax(0, 1fr))",
+                  },
+                  gap: 1.5,
+                }}
+              >
+                {registeredSystems.map((system) => (
+                  <SystemLinkButton key={system.id} href={system.targetUrl} title={system.title} />
+                ))}
+              </Box>
+            </Stack>
+          </Box>
+        ) : null}
+
         <Box
           sx={{
             ...corporatePanelSx,
             p: { xs: 2, md: 2.5 },
           }}
         >
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-                lg: "repeat(4, minmax(0, 1fr))",
-              },
-              gap: 1.5,
-            }}
-          >
-            {legacySystems.map((system) => (
-              <Button
-                key={system.title}
-                component="a"
-                href={system.href}
-                target="_blank"
-                rel="noreferrer"
-                variant="outlined"
-                startIcon={<LaunchRoundedIcon />}
-                sx={{
-                  minHeight: 60,
-                  borderRadius: 2,
-                  justifyContent: "flex-start",
-                  px: 1.75,
-                  py: 1.4,
-                  color: "text.primary",
-                  borderColor: "divider",
-                  backgroundColor: "background.paper",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  textAlign: "left",
-                }}
-              >
-                {system.title}
-              </Button>
-            ))}
-          </Box>
-        </Box>
-
-        {groupedSystems.length > 0 ? (
           <Stack spacing={2}>
-            {groupedSystems.map((section) => (
-              <Box
-                key={section.department.id}
-                sx={{
-                  ...corporatePanelSx,
-                  p: { xs: 2, md: 2.5 },
-                }}
-              >
-                <Stack spacing={2}>
-                  <Stack spacing={0.5}>
-                    <Typography variant="h5">{section.department.name}</Typography>
-                    {section.department.description ? (
-                      <Typography color="text.secondary">
-                        {section.department.description}
-                      </Typography>
-                    ) : null}
-                  </Stack>
+            <Stack spacing={0.5}>
+              <Typography variant="h5">Atalhos legados</Typography>
+              <Typography color="text.secondary">
+                Links antigos mantidos temporariamente fora do cadastro do painel.
+              </Typography>
+            </Stack>
 
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: {
-                        xs: "1fr",
-                        sm: "repeat(2, minmax(0, 1fr))",
-                        lg: "repeat(3, minmax(0, 1fr))",
-                      },
-                      gap: 1.5,
-                    }}
-                  >
-                    {section.items.map((system) => (
-                      <Button
-                        key={system.id}
-                        component="a"
-                        href={system.targetUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        variant="outlined"
-                        startIcon={<LaunchRoundedIcon />}
-                        sx={{
-                          minHeight: 60,
-                          borderRadius: 2,
-                          justifyContent: "flex-start",
-                          px: 1.75,
-                          py: 1.4,
-                          color: "text.primary",
-                          borderColor: "divider",
-                          backgroundColor: "background.paper",
-                          textTransform: "none",
-                          fontWeight: 600,
-                          textAlign: "left",
-                        }}
-                      >
-                        {system.title}
-                      </Button>
-                    ))}
-                  </Box>
-                </Stack>
-              </Box>
-            ))}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  lg: "repeat(4, minmax(0, 1fr))",
+                },
+                gap: 1.5,
+              }}
+            >
+              {legacySystems.map((system) => (
+                <SystemLinkButton key={system.title} href={system.href} title={system.title} />
+              ))}
+            </Box>
           </Stack>
-        ) : null}
+        </Box>
       </Stack>
 
       <Stack spacing={2}>
@@ -222,15 +171,13 @@ export default async function HubPage({ searchParams }: HubPageProps) {
                         <Stack spacing={1}>
                           <Chip
                             size="small"
-                            label={document.isRestricted ? "Restrito por area" : "Liberado"}
-                            color={document.isRestricted ? "warning" : "success"}
+                            label={document.category}
+                            color="success"
                             sx={{ borderRadius: 2, width: "fit-content" }}
                           />
                           <Typography variant="h5">{document.title}</Typography>
                         </Stack>
-                        <Typography color="text.secondary">
-                          {formatDate(document.createdAt)}
-                        </Typography>
+                        <Typography color="text.secondary">{formatDate(document.createdAt)}</Typography>
                       </Stack>
                       <Typography color="text.secondary">
                         {document.description || `Categoria: ${document.category}`}
@@ -266,12 +213,6 @@ export default async function HubPage({ searchParams }: HubPageProps) {
           </Grid>
         )}
       </Stack>
-
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <Box sx={{ ...corporatePanelSx, minHeight: 120 }} />
-        </Grid>
-      </Grid>
     </Stack>
   );
 }

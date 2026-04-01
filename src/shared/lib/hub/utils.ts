@@ -92,21 +92,11 @@ export function filterVisibleDocuments(
   departmentIds: string[],
   isAdmin: boolean
 ) {
-  if (isAdmin) {
-    return documents;
-  }
+  void mapping;
+  void departmentIds;
+  void isAdmin;
 
-  const allowedDepartmentIds = new Set(departmentIds);
-
-  return documents.filter((document) => {
-    if (!document.isRestricted) {
-      return true;
-    }
-
-    return mapping.some(
-      (entry) =>
-        entry.documentId === document.id &&
-        allowedDepartmentIds.has(entry.departmentId)
-    );
-  });
+  return [...documents].sort((left, right) =>
+    left.title.localeCompare(right.title, "pt-BR", { sensitivity: "base" })
+  );
 }

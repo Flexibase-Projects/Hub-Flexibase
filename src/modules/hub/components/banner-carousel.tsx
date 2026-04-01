@@ -6,6 +6,7 @@ import { Box, Chip, IconButton, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import type { HubBanner } from "@/shared/types/hub";
+import { DEFAULT_BANNER_TITLE } from "@/shared/lib/hub/constants";
 
 interface BannerCarouselProps {
   banners: HubBanner[];
@@ -42,8 +43,8 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
     return (
       <Box
         sx={{
-          minHeight: { xs: 220, md: 280 },
-          borderRadius: 2,
+        minHeight: { xs: 220, md: 280 },
+          borderRadius: "10px",
           overflow: "hidden",
           background:
             "linear-gradient(135deg, rgba(15,76,129,0.08) 0%, rgba(18,58,94,0.12) 56%, rgba(30,41,59,0.14) 100%)",
@@ -56,12 +57,17 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
   }
 
   const activeBanner = banners[activeIndex] ?? banners[0];
+  const showBannerText = Boolean(
+    activeBanner.subtitle ||
+      activeBanner.body ||
+      (activeBanner.title && activeBanner.title !== DEFAULT_BANNER_TITLE)
+  );
 
   return (
     <Box
       sx={{
         minHeight: { xs: 240, md: 300 },
-        borderRadius: 2,
+        borderRadius: "10px",
         overflow: "hidden",
         p: { xs: 3, md: 4 },
         background: activeBanner.imageUrl
@@ -72,24 +78,28 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
       }}
     >
       <Stack justifyContent="space-between" sx={{ minHeight: { xs: 192, md: 220 } }}>
-        <Stack spacing={1.25} sx={{ maxWidth: 720 }}>
-          <Chip
-            label={getBannerLabel(activeBanner.tone)}
-            color="secondary"
-            sx={{ width: "fit-content" }}
-          />
-          <Typography variant="h3">{activeBanner.title}</Typography>
-          {activeBanner.subtitle ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.88)" }}>
-              {activeBanner.subtitle}
-            </Typography>
-          ) : null}
-          {activeBanner.body ? (
-            <Typography sx={{ color: "rgba(255,255,255,0.82)", maxWidth: 640 }}>
-              {activeBanner.body}
-            </Typography>
-          ) : null}
-        </Stack>
+        {showBannerText ? (
+          <Stack spacing={1.25} sx={{ maxWidth: 720 }}>
+            <Chip
+              label={getBannerLabel(activeBanner.tone)}
+              color="secondary"
+              sx={{ width: "fit-content" }}
+            />
+            <Typography variant="h3">{activeBanner.title}</Typography>
+            {activeBanner.subtitle ? (
+              <Typography sx={{ color: "rgba(255,255,255,0.88)" }}>
+                {activeBanner.subtitle}
+              </Typography>
+            ) : null}
+            {activeBanner.body ? (
+              <Typography sx={{ color: "rgba(255,255,255,0.82)", maxWidth: 640 }}>
+                {activeBanner.body}
+              </Typography>
+            ) : null}
+          </Stack>
+        ) : (
+          <Box />
+        )}
 
         <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
           <Stack direction="row" spacing={1}>
@@ -132,7 +142,7 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
                   height: 10,
                   border: 0,
                   p: 0,
-                  borderRadius: 999,
+                  borderRadius: "5px",
                   cursor: "pointer",
                   backgroundColor:
                     index === activeIndex ? "common.white" : "rgba(255,255,255,0.34)",

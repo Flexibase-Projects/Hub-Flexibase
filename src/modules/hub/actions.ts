@@ -33,5 +33,5 @@ export async function markNoticeReadAction(formData: FormData) {
   );
 
   revalidatePath("/hub");
-  revalidateTag("hub-content", "max");
+  revalidateTag("hub-content");
 }

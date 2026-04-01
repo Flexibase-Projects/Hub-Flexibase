@@ -1,24 +1,24 @@
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
-  Divider,
-  Grid,
-  MenuItem,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 
 import { requireAdminViewer } from "@/modules/auth/server";
 import {
   archiveBannerAction,
-  restoreBannerAction,
   upsertBannerAction,
 } from "@/modules/admin/actions";
 import { getAdminDashboardData } from "@/modules/admin/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
+import {
+  BANNER_RECOMMENDED_HEIGHT,
+  BANNER_RECOMMENDED_WIDTH,
+} from "@/shared/lib/hub/constants";
 import { PageFeedbackAlert } from "@/shared/ui/components/page-feedback";
 
 interface BannersAdminPageProps {
@@ -31,13 +31,14 @@ export default async function BannersAdminPage({
   await requireAdminViewer();
   const data = await getAdminDashboardData();
   const feedback = await getPageFeedback(searchParams);
+  const currentBanner = data.banners.find((banner) => banner.isActive) ?? data.banners[0] ?? null;
 
   return (
     <Stack spacing={4}>
       <Stack spacing={1}>
-        <Typography variant="h3">Banners e destaques</Typography>
+        <Typography variant="h3">Banner</Typography>
         <Typography color="text.secondary">
-          Área para os banners institucionais exibidos na home do hub.
+          Fluxo simples para manter apenas o banner atual do hub.
         </Typography>
       </Stack>
 
@@ -46,97 +47,59 @@ export default async function BannersAdminPage({
 
       <Card>
         <CardContent>
-          <Stack spacing={2}>
-            <Typography variant="h4">Novo banner</Typography>
-            <form action={upsertBannerAction}>
+          <Stack spacing={3}>
+            <Stack spacing={1}>
+              <Typography variant="h4">Banner atual</Typography>
+              <Typography color="text.secondary">
+                Tamanho recomendado: {BANNER_RECOMMENDED_WIDTH} x {BANNER_RECOMMENDED_HEIGHT} px.
+              </Typography>
+            </Stack>
+
+            {currentBanner?.imageUrl ? (
+              <Box
+                component="img"
+                src={currentBanner.imageUrl}
+                alt="Banner atual"
+                sx={{
+                  width: "100%",
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <Alert severity="info">
+                Nenhum banner ativo no momento. Envie uma imagem para publicar.
+              </Alert>
+            )}
+
+            <form action={upsertBannerAction} encType="multipart/form-data">
               <input type="hidden" name="pathname" value="/admin/banners" />
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField fullWidth label="Título" name="title" required />
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField fullWidth label="Tom" name="tone" select defaultValue="info">
-                    <MenuItem value="info">Informativo</MenuItem>
-                    <MenuItem value="success">Destaque</MenuItem>
-                    <MenuItem value="warning">Atenção</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField fullWidth label="Ordem" name="sortOrder" type="number" defaultValue="0" />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField fullWidth label="Subtítulo" name="subtitle" />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField fullWidth label="Corpo" name="body" multiline minRows={3} />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <TextField fullWidth label="Imagem (opcional)" name="imageUrl" />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Button type="submit" variant="contained">
-                    Salvar banner
-                  </Button>
-                </Grid>
-              </Grid>
+              <input type="hidden" name="id" value={currentBanner?.id ?? ""} />
+              <Stack spacing={2}>
+                <Stack spacing={1}>
+                  <Typography fontWeight={700}>Alterar imagem</Typography>
+                  <input type="file" name="file" accept="image/*" />
+                </Stack>
+                <Button type="submit" variant="contained">
+                  {currentBanner ? "Alterar banner" : "Publicar banner"}
+                </Button>
+              </Stack>
             </form>
+
+            {currentBanner ? (
+              <form action={archiveBannerAction}>
+                <input type="hidden" name="pathname" value="/admin/banners" />
+                <input type="hidden" name="id" value={currentBanner.id} />
+                <Button type="submit" color="warning">
+                  Remover banner atual
+                </Button>
+              </form>
+            ) : null}
           </Stack>
         </CardContent>
       </Card>
-
-      <Grid container spacing={2}>
-        {data.banners.map((banner) => (
-          <Grid key={banner.id} size={{ xs: 12, xl: 6 }}>
-            <Card>
-              <CardContent>
-                <Stack spacing={2}>
-                  <form action={upsertBannerAction}>
-                    <input type="hidden" name="pathname" value="/admin/banners" />
-                    <input type="hidden" name="id" value={banner.id} />
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 6 }}>
-                        <TextField fullWidth label="Título" name="title" defaultValue={banner.title} required />
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 3 }}>
-                        <TextField fullWidth label="Tom" name="tone" select defaultValue={banner.tone}>
-                          <MenuItem value="info">Informativo</MenuItem>
-                          <MenuItem value="success">Destaque</MenuItem>
-                          <MenuItem value="warning">Atenção</MenuItem>
-                        </TextField>
-                      </Grid>
-                      <Grid size={{ xs: 12, md: 3 }}>
-                        <TextField fullWidth label="Ordem" name="sortOrder" type="number" defaultValue={String(banner.sortOrder)} />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Subtítulo" name="subtitle" defaultValue={banner.subtitle ?? ""} />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Corpo" name="body" defaultValue={banner.body ?? ""} multiline minRows={3} />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <TextField fullWidth label="Imagem" name="imageUrl" defaultValue={banner.imageUrl ?? ""} />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <Button type="submit" variant="contained">
-                          Salvar alterações
-                        </Button>
-                      </Grid>
-                    </Grid>
-                  </form>
-                  <Divider />
-                  <form action={banner.isActive ? archiveBannerAction : restoreBannerAction}>
-                    <input type="hidden" name="pathname" value="/admin/banners" />
-                    <input type="hidden" name="id" value={banner.id} />
-                    <Button type="submit" color={banner.isActive ? "warning" : "success"}>
-                      {banner.isActive ? "Arquivar" : "Reativar"}
-                    </Button>
-                  </form>
-                </Stack>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
     </Stack>
   );
 }

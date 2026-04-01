@@ -5,54 +5,15 @@ import {
   Box,
   Button,
   Container,
-  Divider,
   Paper,
   Stack,
   Typography,
 } from "@mui/material";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import { ViewerMenu } from "@/modules/auth/components/viewer-menu";
 import type { ViewerContext } from "@/shared/types/hub";
-
-function ShellNav({ isAdmin }: { isAdmin: boolean }) {
-  const pathname = usePathname();
-
-  const items = isAdmin
-    ? [
-        {
-          href: "/admin",
-          label: "Admin",
-        },
-      ]
-    : [];
-
-  return (
-    items.length === 0 ? null :
-    <Stack direction="row" spacing={1} flexWrap="wrap">
-      {items.map((item) => {
-        const isActive = pathname.startsWith(item.href);
-
-        return (
-          <Button
-            key={item.href}
-            component={Link}
-            href={item.href}
-            variant={isActive ? "contained" : "text"}
-            color="inherit"
-            sx={{
-              borderRadius: 2,
-            }}
-          >
-            {item.label}
-          </Button>
-        );
-      })}
-    </Stack>
-  );
-}
 
 interface ProtectedShellProps {
   viewer?: ViewerContext | null;
@@ -83,8 +44,16 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
             >
               <Stack direction="row" alignItems="center" sx={{ minHeight: 40 }}>
                 <Typography
+                  component={Link}
+                  href="/hub"
                   variant="subtitle1"
-                  sx={{ fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase" }}
+                  sx={{
+                    fontWeight: 700,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    color: "inherit",
+                    textDecoration: "none",
+                  }}
                 >
                   Hub
                 </Typography>
@@ -92,6 +61,8 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
 
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Box
+                  component={Link}
+                  href="/hub"
                   sx={{
                     position: "relative",
                     width: { xs: 112, sm: 136 },
@@ -100,6 +71,7 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    textDecoration: "none",
                   }}
                 >
                   <Image
@@ -140,13 +112,6 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                 )}
               </Stack>
             </Box>
-
-            {viewer ? (
-              <>
-                <Divider sx={{ borderColor: "rgba(255,255,255,0.14)" }} />
-                <ShellNav isAdmin={viewer.isAdmin} />
-              </>
-            ) : null}
           </Stack>
         </Container>
       </Box>
@@ -155,7 +120,7 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
         <Paper
           elevation={0}
           sx={{
-            borderRadius: 6,
+            borderRadius: "10px",
             p: { xs: 2.5, md: 4 },
             backgroundColor: "rgba(255,255,255,0.9)",
             backdropFilter: "blur(18px)",

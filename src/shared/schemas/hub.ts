@@ -1,13 +1,15 @@
 import { z } from "zod";
 
+import { DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
+
 export const loginSchema = z.object({
-  email: z.string().trim().email("Informe um email válido."),
+  email: z.string().trim().email("Informe um email valido."),
   password: z.string().min(6, "Informe sua senha."),
   rememberLogin: z.coerce.boolean().default(false),
 });
 
 export const loginFormSchema = z.object({
-  email: z.string().trim().email("Informe um email válido."),
+  email: z.string().trim().email("Informe um email valido."),
   password: z.string().min(6, "Informe sua senha."),
   rememberLogin: z.boolean(),
 });
@@ -22,32 +24,18 @@ export const departmentSchema = z.object({
 export const systemLinkSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().trim().min(2, "Informe o nome do sistema."),
-  description: z.string().trim().min(4, "Informe uma descrição curta."),
-  targetUrl: z.string().trim().url("Informe uma URL válida."),
-  imageUrl: z.string().trim().url().optional().or(z.literal("")),
-  accentColor: z
-    .string()
-    .trim()
-    .regex(/^#([A-Fa-f0-9]{6})$/, "Use uma cor hexadecimal como #0F4C81.")
-    .optional()
-    .or(z.literal("")),
-  sortOrder: z.coerce.number().int().min(0).default(0),
-  departmentIds: z.array(z.string().uuid()).min(1, "Selecione ao menos um departamento."),
+  description: z.string().trim().min(4, "Informe uma descricao curta."),
+  targetUrl: z.string().trim().url("Informe uma URL valida."),
 });
 
 export const bannerSchema = z.object({
   id: z.string().uuid().optional(),
-  title: z.string().trim().min(2, "Informe um título."),
-  subtitle: z.string().trim().max(120).optional().or(z.literal("")),
-  body: z.string().trim().max(400).optional().or(z.literal("")),
-  imageUrl: z.string().trim().url().optional().or(z.literal("")),
-  tone: z.enum(["info", "success", "warning"]).default("info"),
-  sortOrder: z.coerce.number().int().min(0).default(0),
+  existingStoragePath: z.string().trim().optional().or(z.literal("")),
 });
 
 export const noticeSchema = z.object({
   id: z.string().uuid().optional(),
-  title: z.string().trim().min(2, "Informe um título."),
+  title: z.string().trim().min(2, "Informe um titulo."),
   body: z.string().trim().min(6, "Informe o comunicado."),
   severity: z.enum(["critical", "important", "info"]).default("important"),
   sortOrder: z.coerce.number().int().min(0).default(0),
@@ -55,16 +43,14 @@ export const noticeSchema = z.object({
 
 export const documentSchema = z.object({
   id: z.string().uuid().optional(),
-  title: z.string().trim().min(2, "Informe um título."),
+  title: z.string().trim().min(2, "Informe um titulo."),
   description: z.string().trim().max(240).optional().or(z.literal("")),
-  category: z.string().trim().min(2, "Informe a categoria."),
-  sortOrder: z.coerce.number().int().min(0).default(0),
-  isRestricted: z.coerce.boolean().default(false),
-  departmentIds: z.array(z.string().uuid()).default([]),
+  category: z.enum(DOCUMENT_CATEGORIES, {
+    message: "Selecione uma categoria valida.",
+  }),
 });
 
 export const userAccessSchema = z.object({
-  userId: z.string().uuid("Selecione um usuário válido."),
-  roleKey: z.enum(["operator", "employee", "manager", "admin"]),
-  departmentIds: z.array(z.string().uuid()).default([]),
+  userId: z.string().uuid("Selecione um usuario valido."),
+  isAdmin: z.coerce.boolean().default(false),
 });

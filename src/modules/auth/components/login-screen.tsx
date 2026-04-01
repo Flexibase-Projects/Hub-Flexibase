@@ -158,7 +158,7 @@ export function LoginScreen({ feedback, isConfigured }: LoginScreenProps) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                borderRadius: 3,
+                borderRadius: "8px",
                 border: "1px solid rgba(255,255,255,0.24)",
                 backgroundColor: "rgba(255,255,255,0.12)",
                 backdropFilter: "blur(10px)",
@@ -283,7 +283,7 @@ export function LoginScreen({ feedback, isConfigured }: LoginScreenProps) {
 
                 <Box
                   sx={{
-                    borderRadius: 6,
+                    borderRadius: "10px",
                     border: "1px solid",
                     borderColor: rightPanelBorder,
                     backgroundColor: rightPanelPaper,
@@ -315,7 +315,7 @@ export function LoginScreen({ feedback, isConfigured }: LoginScreenProps) {
                         <Box
                           key={block.title}
                           sx={{
-                            borderRadius: 4,
+                            borderRadius: "8px",
                             p: 2.25,
                             border: "1px solid",
                             borderColor: alpha(isDark ? "#94A3B8" : "#2563EB", 0.18),
@@ -355,7 +355,7 @@ export function LoginScreen({ feedback, isConfigured }: LoginScreenProps) {
                           disableGutters
                           sx={{
                             overflow: "hidden",
-                            borderRadius: 4,
+                            borderRadius: "8px",
                             border: "1px solid",
                             borderColor: rightPanelBorder,
                             backgroundColor: alpha(isDark ? "#0F172A" : "#FFFFFF", 0.58),
@@ -400,7 +400,7 @@ export function LoginScreen({ feedback, isConfigured }: LoginScreenProps) {
                 sx={{
                   width: "100%",
                   maxWidth: 520,
-                  borderRadius: 6,
+                  borderRadius: "10px",
                   border: "1px solid",
                   borderColor: rightPanelBorder,
                   backgroundColor: rightPanelPaper,

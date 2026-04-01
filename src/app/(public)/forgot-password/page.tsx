@@ -8,7 +8,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 12 }}>
-      <Card sx={{ borderRadius: 6 }}>
+      <Card sx={{ borderRadius: "10px" }}>
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={2.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">

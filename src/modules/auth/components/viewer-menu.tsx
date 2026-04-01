@@ -12,6 +12,7 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
+import Link from "next/link";
 import { useState } from "react";
 
 import { logoutAction } from "@/modules/auth/actions";
@@ -23,17 +24,10 @@ interface ViewerMenuProps {
 
 export function ViewerMenu({ viewer }: ViewerMenuProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const handleClose = () => setAnchorEl(null);
 
   return (
     <>
-      {viewer.isAdmin ? (
-        <AdminPanelSettingsRoundedIcon
-          fontSize="small"
-          sx={{ color: "rgba(255,255,255,0.88)" }}
-          aria-label="Administrador do sistema"
-        />
-      ) : null}
-
       <Button
         variant="outlined"
         color="inherit"
@@ -52,7 +46,7 @@ export function ViewerMenu({ viewer }: ViewerMenuProps) {
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
+        onClose={handleClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
         slotProps={{
@@ -65,8 +59,17 @@ export function ViewerMenu({ viewer }: ViewerMenuProps) {
           },
         }}
       >
+        {viewer.isAdmin ? (
+          <MenuItem component={Link} href="/admin" onClick={handleClose}>
+            <ListItemIcon>
+              <AdminPanelSettingsRoundedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Painel Administrativo</ListItemText>
+          </MenuItem>
+        ) : null}
+
         <Box component="form" action={logoutAction}>
-          <MenuItem type="submit" component="button" sx={{ width: "100%" }}>
+          <MenuItem type="submit" component="button" sx={{ width: "100%" }} onClick={handleClose}>
             <ListItemIcon>
               <LogoutRoundedIcon fontSize="small" />
             </ListItemIcon>

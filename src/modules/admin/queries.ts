@@ -1,5 +1,8 @@
-import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
+import type { User } from "@supabase/supabase-js";
+
+import { createAdminSupabaseClient } from "@/shared/lib/supabase/admin";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
+import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
 import type {
   HubBanner,
   HubDepartment,
@@ -9,6 +12,15 @@ import type {
   HubSystemLink,
   HubUserProfile,
 } from "@/shared/types/hub";
+
+export interface AdminAuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  createdAt: string;
+  lastSignInAt: string | null;
+  isAdmin: boolean;
+}
 
 export interface AdminDashboardData {
   departments: HubDepartment[];
@@ -29,6 +41,7 @@ export interface AdminDashboardData {
     deletedAt: string | null;
   }>;
   profiles: HubUserProfile[];
+  adminUsers: AdminAuthUser[];
   roles: Array<{
     id: string;
     key: HubRoleKey;
@@ -57,6 +70,7 @@ function createEmptyAdminDashboardData(loadError: string | null = null): AdminDa
     documents: [],
     documentDepartmentMap: [],
     profiles: [],
+    adminUsers: [],
     roles: [],
     userRoles: [],
     userDepartments: [],
@@ -64,12 +78,64 @@ function createEmptyAdminDashboardData(loadError: string | null = null): AdminDa
   };
 }
 
+function sortByLabel<T>(items: T[], getLabel: (item: T) => string) {
+  return [...items].sort((left, right) =>
+    getLabel(left).localeCompare(getLabel(right), "pt-BR", { sensitivity: "base" })
+  );
+}
+
+function resolveBannerImageUrl(id: string, imageUrl: string | null) {
+  if (!imageUrl) {
+    return null;
+  }
+
+  if (imageUrl.startsWith("storage:")) {
+    return `/api/banners/${id}/image`;
+  }
+
+  return imageUrl;
+}
+
+async function listAllAuthUsers() {
+  const adminSupabase = createAdminSupabaseClient();
+
+  if (!adminSupabase) {
+    return null;
+  }
+
+  const users: User[] = [];
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await adminSupabase.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error) {
+      return null;
+    }
+
+    const batch = data.users ?? [];
+    users.push(...batch);
+
+    if (batch.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return users;
+}
+
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
     return createEmptyAdminDashboardData(
-      "Supabase ainda não está configurado para o painel administrativo."
+      "Supabase ainda nao esta configurado para o painel administrativo."
     );
   }
 
@@ -87,21 +153,20 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     rolesResult,
     userRolesResult,
     userDepartmentsResult,
+    authUsers,
   ] = await Promise.all([
-    hub.from("hub_departments").select("*").order("sort_order", { ascending: true }),
-    hub.from("hub_system_links").select("*").order("sort_order", { ascending: true }),
-    hub
-      .from("hub_system_link_departments")
-      .select("*")
-      .order("sort_order", { ascending: true }),
-    hub.from("hub_banners").select("*").order("sort_order", { ascending: true }),
-    hub.from("hub_notices").select("*").order("sort_order", { ascending: true }),
-    hub.from("hub_documents").select("*").order("sort_order", { ascending: true }),
+    hub.from("hub_departments").select("*").order("name", { ascending: true }),
+    hub.from("hub_system_links").select("*"),
+    hub.from("hub_system_link_departments").select("*"),
+    hub.from("hub_banners").select("*").order("created_at", { ascending: false }),
+    hub.from("hub_notices").select("*").order("created_at", { ascending: false }),
+    hub.from("hub_documents").select("*"),
     hub.from("hub_document_departments").select("*"),
     hub.from("hub_user_profiles").select("*").order("full_name", { ascending: true }),
     hub.from("hub_roles").select("*").order("label", { ascending: true }),
     hub.from("hub_user_roles").select("*"),
     hub.from("hub_user_departments").select("*"),
+    listAllAuthUsers(),
   ]);
 
   const possibleErrors = [
@@ -120,9 +185,58 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
   if (possibleErrors.length > 0) {
     return createEmptyAdminDashboardData(
-      "O schema do HUB ainda não foi aplicado ou o usuário não possui acesso aos dados administrativos."
+      "O schema do HUB ainda nao foi aplicado ou o usuario nao possui acesso aos dados administrativos."
     );
   }
+
+  const roles = (rolesResult.data ?? []).map((row) => ({
+    id: row.id as string,
+    key: row.key as HubRoleKey,
+    label: row.label as string,
+  }));
+
+  const adminRoleIds = new Set(roles.filter((role) => role.key === "admin").map((role) => role.id));
+  const activeAdminUserIds = new Set(
+    (userRolesResult.data ?? [])
+      .filter((row) => !(row.deleted_at as string | null))
+      .filter((row) => adminRoleIds.has(row.role_id as string))
+      .map((row) => row.user_id as string)
+  );
+
+  const profiles = (profilesResult.data ?? []).map((row) => ({
+    id: row.id as string,
+    email: row.email as string,
+    fullName: row.full_name as string,
+    jobTitle: (row.job_title as string | null) ?? null,
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  }));
+
+  const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+
+  const adminUsers = sortByLabel(
+    (authUsers ?? []).map((user) => {
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+      const email = String(user.email ?? "");
+      const profile = profileById.get(String(user.id));
+      const fallbackName = email.split("@")[0] || "Colaborador";
+      const fullName =
+        profile?.fullName ||
+        (typeof metadata.full_name === "string" ? metadata.full_name : fallbackName);
+
+      return {
+        id: String(user.id),
+        email,
+        fullName,
+        createdAt: String(user.created_at ?? ""),
+        lastSignInAt:
+          typeof user.last_sign_in_at === "string" ? user.last_sign_in_at : null,
+        isAdmin: activeAdminUserIds.has(String(user.id)),
+      };
+    }),
+    (user) => `${user.fullName} ${user.email}`
+  );
 
   return {
     departments: (departmentsResult.data ?? []).map((row) => ({
@@ -133,16 +247,19 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       sortOrder: row.sort_order as number,
       isActive: Boolean(row.is_active),
     })),
-    systems: (systemsResult.data ?? []).map((row) => ({
-      id: row.id as string,
-      title: row.title as string,
-      description: row.description as string,
-      targetUrl: row.target_url as string,
-      imageUrl: (row.image_url as string | null) ?? null,
-      accentColor: (row.accent_color as string | null) ?? null,
-      sortOrder: row.sort_order as number,
-      isActive: Boolean(row.is_active),
-    })),
+    systems: sortByLabel(
+      (systemsResult.data ?? []).map((row) => ({
+        id: row.id as string,
+        title: row.title as string,
+        description: row.description as string,
+        targetUrl: row.target_url as string,
+        imageUrl: (row.image_url as string | null) ?? null,
+        accentColor: (row.accent_color as string | null) ?? null,
+        sortOrder: row.sort_order as number,
+        isActive: Boolean(row.is_active),
+      })),
+      (system) => system.title
+    ),
     systemDepartmentMap: (systemDepartmentMapResult.data ?? []).map((row) => ({
       systemLinkId: row.system_link_id as string,
       departmentId: row.department_id as string,
@@ -155,7 +272,10 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       title: row.title as string,
       subtitle: (row.subtitle as string | null) ?? null,
       body: (row.body as string | null) ?? null,
-      imageUrl: (row.image_url as string | null) ?? null,
+      imageUrl: resolveBannerImageUrl(
+        row.id as string,
+        (row.image_url as string | null) ?? null
+      ),
       tone: row.tone as "info" | "success" | "warning",
       sortOrder: row.sort_order as number,
       isActive: Boolean(row.is_active),
@@ -169,40 +289,32 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       isActive: Boolean(row.is_active),
       createdAt: row.created_at as string,
     })),
-    documents: (documentsResult.data ?? []).map((row) => ({
-      id: row.id as string,
-      title: row.title as string,
-      description: (row.description as string | null) ?? null,
-      category: row.category as string,
-      fileName: row.file_name as string,
-      mimeType: (row.mime_type as string | null) ?? null,
-      storageBucket: row.storage_bucket as string,
-      storagePath: row.storage_path as string,
-      fileSize: (row.file_size as number | null) ?? null,
-      isRestricted: Boolean(row.is_restricted),
-      sortOrder: row.sort_order as number,
-      isActive: Boolean(row.is_active),
-      createdAt: row.created_at as string,
-    })),
+    documents: sortByLabel(
+      (documentsResult.data ?? []).map((row) => ({
+        id: row.id as string,
+        title: row.title as string,
+        description: (row.description as string | null) ?? null,
+        category: row.category as string,
+        fileName: row.file_name as string,
+        mimeType: (row.mime_type as string | null) ?? null,
+        storageBucket: row.storage_bucket as string,
+        storagePath: row.storage_path as string,
+        fileSize: (row.file_size as number | null) ?? null,
+        isRestricted: Boolean(row.is_restricted),
+        sortOrder: row.sort_order as number,
+        isActive: Boolean(row.is_active),
+        createdAt: row.created_at as string,
+      })),
+      (document) => document.title
+    ),
     documentDepartmentMap: (documentDepartmentMapResult.data ?? []).map((row) => ({
       documentId: row.document_id as string,
       departmentId: row.department_id as string,
       deletedAt: (row.deleted_at as string | null) ?? null,
     })),
-    profiles: (profilesResult.data ?? []).map((row) => ({
-      id: row.id as string,
-      email: row.email as string,
-      fullName: row.full_name as string,
-      jobTitle: (row.job_title as string | null) ?? null,
-      isActive: Boolean(row.is_active),
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    })),
-    roles: (rolesResult.data ?? []).map((row) => ({
-      id: row.id as string,
-      key: row.key as HubRoleKey,
-      label: row.label as string,
-    })),
+    profiles,
+    adminUsers,
+    roles,
     userRoles: (userRolesResult.data ?? []).map((row) => ({
       userId: row.user_id as string,
       roleId: row.role_id as string,
@@ -213,6 +325,6 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       departmentId: row.department_id as string,
       deletedAt: (row.deleted_at as string | null) ?? null,
     })),
-    loadError: null,
+    loadError: authUsers === null ? "Nao foi possivel carregar os usuarios do Supabase Auth." : null,
   };
 }

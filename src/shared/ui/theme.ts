@@ -5,7 +5,7 @@ import { alpha, createTheme } from "@mui/material/styles";
 export const appTheme = createTheme({
   cssVariables: true,
   shape: {
-    borderRadius: 20,
+    borderRadius: 4,
   },
   palette: {
     mode: "light",
@@ -85,7 +85,7 @@ export const appTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: 999,
+          borderRadius: "8px",
           paddingInline: 18,
         },
       },
@@ -93,7 +93,7 @@ export const appTheme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 999,
+          borderRadius: "8px",
         },
       },
     },
