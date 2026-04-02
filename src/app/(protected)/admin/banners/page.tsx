@@ -11,7 +11,6 @@ import {
 import { requireAdminViewer } from "@/modules/auth/server";
 import {
   archiveBannerAction,
-  upsertBannerAction,
 } from "@/modules/admin/actions";
 import { getAdminDashboardData } from "@/modules/admin/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
@@ -74,9 +73,9 @@ export default async function BannersAdminPage({
               </Alert>
             )}
 
-            <form action={upsertBannerAction} encType="multipart/form-data">
+            <form action="/api/admin/banners" method="post" encType="multipart/form-data">
               <input type="hidden" name="pathname" value="/admin/banners" />
-              <input type="hidden" name="id" value={currentBanner?.id ?? ""} />
+              {currentBanner ? <input type="hidden" name="id" value={currentBanner.id} /> : null}
               <Stack spacing={2}>
                 <Stack spacing={1}>
                   <Typography fontWeight={700}>Alterar imagem</Typography>

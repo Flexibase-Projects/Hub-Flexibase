@@ -4,9 +4,9 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminViewer } from "@/modules/auth/server";
-import { DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
 import { buildFeedbackUrl } from "@/shared/lib/feedback";
 import { buildSoftDeleteWindow, slugify } from "@/shared/lib/hub/utils";
+import { DEFAULT_BANNER_TITLE, DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
 import { createAdminSupabaseClient } from "@/shared/lib/supabase/admin";
 import { ASSET_BUCKET, DOCUMENT_BUCKET, getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
@@ -18,6 +18,22 @@ import {
   systemLinkSchema,
   userAccessSchema,
 } from "@/shared/schemas/hub";
+
+function clearSoftDeleteColumns() {
+  return {
+    deleted_at: null,
+    purge_after_at: null,
+  };
+}
+
+function softDeleteColumns() {
+  const window = buildSoftDeleteWindow();
+
+  return {
+    deleted_at: window.deletedAt,
+    purge_after_at: window.purgeAfterAt,
+  };
+}
 
 async function getAdminHub() {
   await requireAdminViewer();
@@ -42,34 +58,15 @@ function normalizeBannerStoragePath(value: string | null | undefined) {
   return value.startsWith("storage:") ? value.slice("storage:".length) : value;
 }
 
-function clearSoftDeleteColumns() {
-  return {
-    deleted_at: null,
-    purge_after_at: null,
-  };
-}
-
-function softDeleteColumns() {
-  const softDeleteWindow = buildSoftDeleteWindow();
-
-  return {
-    deleted_at: softDeleteWindow.deletedAt,
-    purge_after_at: softDeleteWindow.purgeAfterAt,
-  };
-}
-
-function revalidateAdminAndHub(pathname: string) {
-  revalidatePath(pathname);
-  revalidatePath("/admin");
-  revalidatePath("/hub");
-  revalidateTag("hub-content", "max");
-}
-
 function handleActionFailure(pathname: string, message: string): never {
   redirect(buildFeedbackUrl(pathname, "error", message) as never);
 }
 
-function redirectWithSuccess(pathname: string, message: string): never {
+function finalizeAction(pathname: string, message: string): never {
+  revalidatePath(pathname);
+  revalidatePath("/admin");
+  revalidatePath("/hub");
+  revalidateTag("hub-content", "max");
   redirect(buildFeedbackUrl(pathname, "success", message) as never);
 }
 
@@ -89,7 +86,6 @@ async function clearDepartmentMapping(
 
 async function ensureProfile(userId: string) {
   const adminSupabase = createAdminSupabaseClient();
-  const hub = await getAdminHub();
 
   if (!adminSupabase) {
     return;
@@ -101,6 +97,7 @@ async function ensureProfile(userId: string) {
     return;
   }
 
+  const hub = await getAdminHub();
   const user = userResult.data.user;
   const fullName =
     (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()) ||
@@ -146,6 +143,7 @@ async function setAdminAccess(userId: string, isAdmin: boolean) {
         onConflict: "user_id,role_id",
       }
     );
+
     return;
   }
 
@@ -172,6 +170,7 @@ export async function upsertDepartmentAction(formData: FormData) {
 
   const hub = await getAdminHub();
   const recordId = parsed.data.id ?? crypto.randomUUID();
+
   const { error } = await hub.from("hub_departments").upsert(
     {
       id: recordId,
@@ -189,8 +188,7 @@ export async function upsertDepartmentAction(formData: FormData) {
     handleActionFailure(pathname, "Nao foi possivel salvar o departamento.");
   }
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Departamento salvo com sucesso.");
+  finalizeAction(pathname, "Departamento salvo com sucesso.");
 }
 
 export async function archiveDepartmentAction(formData: FormData) {
@@ -206,8 +204,7 @@ export async function archiveDepartmentAction(formData: FormData) {
     })
     .eq("id", departmentId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Departamento arquivado.");
+  finalizeAction(pathname, "Departamento arquivado.");
 }
 
 export async function restoreDepartmentAction(formData: FormData) {
@@ -223,8 +220,7 @@ export async function restoreDepartmentAction(formData: FormData) {
     })
     .eq("id", departmentId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Departamento reativado.");
+  finalizeAction(pathname, "Departamento reativado.");
 }
 
 export async function upsertSystemAction(formData: FormData) {
@@ -262,8 +258,7 @@ export async function upsertSystemAction(formData: FormData) {
   }
 
   await clearDepartmentMapping("hub_system_link_departments", "system_link_id", recordId);
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Sistema salvo com sucesso.");
+  finalizeAction(pathname, "Sistema salvo com sucesso.");
 }
 
 export async function archiveSystemAction(formData: FormData) {
@@ -279,8 +274,7 @@ export async function archiveSystemAction(formData: FormData) {
     })
     .eq("id", systemId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Sistema removido.");
+  finalizeAction(pathname, "Sistema removido.");
 }
 
 export async function restoreSystemAction(formData: FormData) {
@@ -296,15 +290,14 @@ export async function restoreSystemAction(formData: FormData) {
     })
     .eq("id", systemId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Sistema reativado.");
+  finalizeAction(pathname, "Sistema reativado.");
 }
 
 export async function upsertBannerAction(formData: FormData) {
   const pathname = String(formData.get("pathname") || "/admin/banners");
   const parsed = bannerSchema.safeParse({
     id: normalizeOptional(formData.get("id")) ?? undefined,
-    existingStoragePath: formData.get("existingStoragePath"),
+    existingStoragePath: normalizeOptional(formData.get("existingStoragePath")) ?? "",
   });
 
   if (!parsed.success) {
@@ -326,10 +319,9 @@ export async function upsertBannerAction(formData: FormData) {
   let storagePath = normalizeBannerStoragePath(parsed.data.existingStoragePath?.trim() || "");
 
   if (file instanceof File && file.size > 0) {
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\\-_]/g, "-");
     storagePath = `banners/${recordId}/${Date.now()}-${safeFileName}`;
-    const arrayBuffer = await file.arrayBuffer();
-    const uploadBuffer = Buffer.from(arrayBuffer);
+    const uploadBuffer = Buffer.from(await file.arrayBuffer());
 
     const uploadResult = await adminSupabase.storage.from(ASSET_BUCKET).upload(storagePath, uploadBuffer, {
       contentType: file.type || "application/octet-stream",
@@ -348,7 +340,7 @@ export async function upsertBannerAction(formData: FormData) {
   const { error } = await hub.from("hub_banners").upsert(
     {
       id: recordId,
-      title: "Banner principal",
+      title: DEFAULT_BANNER_TITLE,
       subtitle: null,
       body: null,
       image_url: `storage:${storagePath}`,
@@ -373,8 +365,7 @@ export async function upsertBannerAction(formData: FormData) {
     .neq("id", recordId)
     .is("deleted_at", null);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Banner atualizado com sucesso.");
+  finalizeAction(pathname, "Banner atualizado com sucesso.");
 }
 
 export async function archiveBannerAction(formData: FormData) {
@@ -390,8 +381,7 @@ export async function archiveBannerAction(formData: FormData) {
     })
     .eq("id", bannerId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Banner removido.");
+  finalizeAction(pathname, "Banner removido.");
 }
 
 export async function restoreBannerAction(formData: FormData) {
@@ -416,8 +406,7 @@ export async function restoreBannerAction(formData: FormData) {
     .neq("id", bannerId)
     .is("deleted_at", null);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Banner reativado.");
+  finalizeAction(pathname, "Banner reativado.");
 }
 
 export async function upsertNoticeAction(formData: FormData) {
@@ -436,6 +425,7 @@ export async function upsertNoticeAction(formData: FormData) {
 
   const hub = await getAdminHub();
   const recordId = parsed.data.id ?? crypto.randomUUID();
+
   const { error } = await hub.from("hub_notices").upsert(
     {
       id: recordId,
@@ -453,8 +443,7 @@ export async function upsertNoticeAction(formData: FormData) {
     handleActionFailure(pathname, "Nao foi possivel salvar o comunicado.");
   }
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Comunicado salvo com sucesso.");
+  finalizeAction(pathname, "Comunicado salvo com sucesso.");
 }
 
 export async function archiveNoticeAction(formData: FormData) {
@@ -470,8 +459,7 @@ export async function archiveNoticeAction(formData: FormData) {
     })
     .eq("id", noticeId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Comunicado arquivado.");
+  finalizeAction(pathname, "Comunicado arquivado.");
 }
 
 export async function restoreNoticeAction(formData: FormData) {
@@ -487,8 +475,7 @@ export async function restoreNoticeAction(formData: FormData) {
     })
     .eq("id", noticeId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Comunicado reativado.");
+  finalizeAction(pathname, "Comunicado reativado.");
 }
 
 export async function upsertDocumentAction(formData: FormData) {
@@ -526,14 +513,13 @@ export async function upsertDocumentAction(formData: FormData) {
       );
     }
 
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9.\\-_]/g, "-");
     storagePath = `${recordId}/${Date.now()}-${safeFileName}`;
     fileName = file.name;
     mimeType = file.type || "application/octet-stream";
     fileSize = String(file.size);
 
-    const arrayBuffer = await file.arrayBuffer();
-    const uploadBuffer = Buffer.from(arrayBuffer);
+    const uploadBuffer = Buffer.from(await file.arrayBuffer());
     const uploadResult = await adminSupabase.storage.from(DOCUMENT_BUCKET).upload(storagePath, uploadBuffer, {
       contentType: mimeType,
       upsert: true,
@@ -572,8 +558,7 @@ export async function upsertDocumentAction(formData: FormData) {
   }
 
   await clearDepartmentMapping("hub_document_departments", "document_id", recordId);
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Documento salvo com sucesso.");
+  finalizeAction(pathname, "Documento salvo com sucesso.");
 }
 
 export async function archiveDocumentAction(formData: FormData) {
@@ -589,8 +574,7 @@ export async function archiveDocumentAction(formData: FormData) {
     })
     .eq("id", documentId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Documento arquivado.");
+  finalizeAction(pathname, "Documento arquivado.");
 }
 
 export async function restoreDocumentAction(formData: FormData) {
@@ -606,8 +590,7 @@ export async function restoreDocumentAction(formData: FormData) {
     })
     .eq("id", documentId);
 
-  revalidateAdminAndHub(pathname);
-  redirectWithSuccess(pathname, "Documento reativado.");
+  finalizeAction(pathname, "Documento reativado.");
 }
 
 export async function updateUserAccessAction(formData: FormData) {
@@ -622,10 +605,9 @@ export async function updateUserAccessAction(formData: FormData) {
   }
 
   await setAdminAccess(parsed.data.userId, parsed.data.isAdmin);
-  revalidateAdminAndHub(pathname);
   const query = normalizeOptional(formData.get("query"));
   const nextPathname = query ? `${pathname}?q=${encodeURIComponent(query)}` : pathname;
-  redirectWithSuccess(
+  finalizeAction(
     nextPathname,
     parsed.data.isAdmin ? "Permissao de admin ativada." : "Permissao de admin removida."
   );

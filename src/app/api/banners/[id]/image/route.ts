@@ -45,15 +45,15 @@ export async function GET(_request: Request, { params }: BannerImageRouteProps) 
     return NextResponse.json({ error: "Banner nao encontrado." }, { status: 404 });
   }
 
-  const download = await adminSupabase.storage.from("hub-assets").download(storagePath);
+  const signedUrl = await adminSupabase.storage.from("hub-assets").createSignedUrl(storagePath, 60 * 60);
 
-  if (download.error || !download.data) {
+  if (signedUrl.error || !signedUrl.data?.signedUrl) {
     return NextResponse.json({ error: "Nao foi possivel carregar a imagem do banner." }, { status: 404 });
   }
 
-  const headers = new Headers();
-  headers.set("Content-Type", download.data.type || "application/octet-stream");
-  headers.set("Cache-Control", "public, max-age=300");
-
-  return new NextResponse(download.data, { headers });
+  return NextResponse.redirect(signedUrl.data.signedUrl, {
+    headers: {
+      "Cache-Control": "private, max-age=300",
+    },
+  });
 }
