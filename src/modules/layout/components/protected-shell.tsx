@@ -1,5 +1,6 @@
 "use client";
 
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import {
   Box,
@@ -13,14 +14,22 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ViewerMenu } from "@/modules/auth/components/viewer-menu";
-import type { ViewerContext } from "@/shared/types/hub";
+import { NoticeBell } from "@/modules/hub/components/notice-bell";
+import type { HubNotice, HubNoticeRead, ViewerContext } from "@/shared/types/hub";
 
 interface ProtectedShellProps {
   viewer?: ViewerContext | null;
+  notices?: HubNotice[];
+  noticeReads?: HubNoticeRead[];
   children: React.ReactNode;
 }
 
-export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
+export function ProtectedShell({
+  viewer,
+  notices = [],
+  noticeReads = [],
+  children,
+}: ProtectedShellProps) {
   return (
     <Box sx={{ minHeight: "100vh", pb: 6 }}>
       <Box
@@ -64,9 +73,9 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                   component={Link}
                   href="/hub"
                   sx={{
-                    position: "relative",
                     width: { xs: 112, sm: 136 },
-                    height: { xs: 34, sm: 40 },
+                    aspectRatio: "1086 / 495",
+                    py: "5px",
                     flexShrink: 0,
                     display: "flex",
                     alignItems: "center",
@@ -77,9 +86,15 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                   <Image
                     src="/flexibase-logo.png"
                     alt="Flexibase"
-                    fill
+                    width={1086}
+                    height={495}
                     sizes="136px"
-                    style={{ objectFit: "contain" }}
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      filter:
+                        "brightness(0) invert(1) drop-shadow(0 0 12px rgba(255,255,255,0.22))",
+                    }}
                     priority
                   />
                 </Box>
@@ -92,8 +107,27 @@ export function ProtectedShell({ viewer, children }: ProtectedShellProps) {
                 justifyContent="flex-end"
                 sx={{ gridColumn: { xs: "2 / 3", md: "3 / 4" } }}
               >
+                {viewer?.isAdmin ? (
+                  <Button
+                    component={Link}
+                    href="/admin"
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<AdminPanelSettingsRoundedIcon />}
+                    sx={{
+                      borderColor: "rgba(255,255,255,0.28)",
+                      color: "common.white",
+                      minWidth: "fit-content",
+                    }}
+                  >
+                    Admin
+                  </Button>
+                ) : null}
                 {viewer ? (
-                  <ViewerMenu viewer={viewer} />
+                  <>
+                    <NoticeBell notices={notices} noticeReads={noticeReads} />
+                    <ViewerMenu viewer={viewer} />
+                  </>
                 ) : (
                   <Button
                     component={Link}

@@ -1,9 +1,11 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 
+import { normalizeSystemIconKey } from "@/shared/lib/hub/system-icons";
 import { createAdminSupabaseClient } from "@/shared/lib/supabase/admin";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
-import type { HubHomeData, ViewerContext } from "@/shared/types/hub";
+import type { HubHomeData, HubNotice, HubNoticeRead, ViewerContext } from "@/shared/types/hub";
 
 function createEmptyHubData(loadError: string | null = null): HubHomeData {
   return {
@@ -37,6 +39,27 @@ function resolveBannerUrl(id: string, imageUrl: string | null) {
   return `/api/banners/${id}/image`;
 }
 
+function mapNotice(row: Record<string, unknown>): HubNotice {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    body: row.body as string,
+    severity: row.severity as "critical" | "important" | "info",
+    sortOrder: row.sort_order as number,
+    isActive: Boolean(row.is_active),
+    createdAt: row.created_at as string,
+  };
+}
+
+function mapNoticeRead(row: Record<string, unknown>): HubNoticeRead {
+  return {
+    id: row.id as string,
+    noticeId: row.notice_id as string,
+    userId: row.user_id as string,
+    readAt: row.read_at as string,
+  };
+}
+
 function mapBaseHubData(payload: {
   notices: Array<Record<string, unknown>>;
   banners: Array<Record<string, unknown>>;
@@ -58,15 +81,7 @@ function mapBaseHubData(payload: {
     }));
 
   return {
-    notices: payload.notices.map((row) => ({
-      id: row.id as string,
-      title: row.title as string,
-      body: row.body as string,
-      severity: row.severity as "critical" | "important" | "info",
-      sortOrder: row.sort_order as number,
-      isActive: Boolean(row.is_active),
-      createdAt: row.created_at as string,
-    })),
+    notices: payload.notices.map(mapNotice),
     noticeReads: [],
     banners: resolvedBanners,
     departments: payload.departments.map((row) => ({
@@ -83,6 +98,7 @@ function mapBaseHubData(payload: {
         title: row.title as string,
         description: row.description as string,
         targetUrl: row.target_url as string,
+        iconKey: normalizeSystemIconKey(row.icon_key as string | null | undefined),
         imageUrl: (row.image_url as string | null) ?? null,
         accentColor: (row.accent_color as string | null) ?? null,
         sortOrder: row.sort_order as number,
@@ -186,6 +202,68 @@ const getCachedHubContent = unstable_cache(
   }
 );
 
+const getViewerNoticeReads = cache(async (userId: string): Promise<HubNoticeRead[] | null> => {
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    return null;
+  }
+
+  const hub = supabase.schema(getSupabaseEnv().schema);
+  const { data, error } = await hub.from("hub_notice_reads").select("*").eq("user_id", userId);
+
+  if (error) {
+    return null;
+  }
+
+  return (data ?? []).map((row) => mapNoticeRead(row as Record<string, unknown>));
+});
+
+export async function getHubHeaderNoticeData(viewer?: ViewerContext | null) {
+  const cachedContent = await getCachedHubContent();
+
+  if (cachedContent) {
+    if (!viewer) {
+      return {
+        notices: cachedContent.notices,
+        noticeReads: [],
+      };
+    }
+
+    const noticeReads = await getViewerNoticeReads(viewer.userId);
+
+    return {
+      notices: cachedContent.notices,
+      noticeReads: noticeReads ?? [],
+    };
+  }
+
+  const supabase = await createServerSupabaseClient();
+
+  if (!supabase) {
+    return {
+      notices: [],
+      noticeReads: [],
+    };
+  }
+
+  const baseData = await fetchBaseHubDataFromClient(supabase);
+
+  if (!viewer || baseData.loadError) {
+    return {
+      notices: baseData.notices,
+      noticeReads: [],
+    };
+  }
+
+  const noticeReads = await getViewerNoticeReads(viewer.userId);
+
+  return {
+    notices: baseData.notices,
+    noticeReads: noticeReads ?? [],
+  };
+}
+
 export async function getHubHomeData(viewer?: ViewerContext | null): Promise<HubHomeData> {
   const cachedContent = await getCachedHubContent();
 
@@ -194,30 +272,15 @@ export async function getHubHomeData(viewer?: ViewerContext | null): Promise<Hub
       return cachedContent;
     }
 
-    const supabase = await createServerSupabaseClient();
+    const noticeReads = await getViewerNoticeReads(viewer.userId);
 
-    if (!supabase) {
-      return cachedContent;
-    }
-
-    const hub = supabase.schema(getSupabaseEnv().schema);
-    const { data: noticeReads, error: noticeReadsError } = await hub
-      .from("hub_notice_reads")
-      .select("*")
-      .eq("user_id", viewer.userId);
-
-    if (noticeReadsError) {
+    if (!noticeReads) {
       return cachedContent;
     }
 
     return {
       ...cachedContent,
-      noticeReads: (noticeReads ?? []).map((row) => ({
-        id: row.id as string,
-        noticeId: row.notice_id as string,
-        userId: row.user_id as string,
-        readAt: row.read_at as string,
-      })),
+      noticeReads,
     };
   }
 
@@ -233,23 +296,14 @@ export async function getHubHomeData(viewer?: ViewerContext | null): Promise<Hub
     return baseData;
   }
 
-  const hub = supabase.schema(getSupabaseEnv().schema);
-  const { data: noticeReads, error: noticeReadsError } = await hub
-    .from("hub_notice_reads")
-    .select("*")
-    .eq("user_id", viewer.userId);
+  const noticeReads = await getViewerNoticeReads(viewer.userId);
 
-  if (noticeReadsError) {
+  if (!noticeReads) {
     return baseData;
   }
 
   return {
     ...baseData,
-    noticeReads: (noticeReads ?? []).map((row) => ({
-      id: row.id as string,
-      noticeId: row.notice_id as string,
-      userId: row.user_id as string,
-      readAt: row.read_at as string,
-    })),
+    noticeReads,
   };
 }

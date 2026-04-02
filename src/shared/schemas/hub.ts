@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
+import { SYSTEM_ICON_KEYS } from "@/shared/lib/hub/system-icons";
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Informe um email valido."),
@@ -26,6 +27,9 @@ export const systemLinkSchema = z.object({
   title: z.string().trim().min(2, "Informe o nome do sistema."),
   description: z.string().trim().min(4, "Informe uma descricao curta."),
   targetUrl: z.string().trim().url("Informe uma URL valida."),
+  iconKey: z.enum(SYSTEM_ICON_KEYS, {
+    message: "Selecione um icone valido.",
+  }),
 });
 
 export const bannerSchema = z.object({

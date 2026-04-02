@@ -12,14 +12,9 @@ import {
 } from "@mui/material";
 
 import { requireAdminViewer } from "@/modules/auth/server";
-import {
-  archiveDocumentAction,
-  restoreDocumentAction,
-  upsertDocumentAction,
-} from "@/modules/admin/actions";
 import { getAdminDashboardData } from "@/modules/admin/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
-import { DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
+import { COMMON_DOCUMENT_TYPES_HINT, DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
 import { formatBytes, formatDate } from "@/shared/lib/hub/utils";
 import { PageFeedbackAlert } from "@/shared/ui/components/page-feedback";
 
@@ -50,8 +45,9 @@ export default async function DocumentsAdminPage({
         <CardContent>
           <Stack spacing={2}>
             <Typography variant="h4">Novo documento</Typography>
-            <form action={upsertDocumentAction} encType="multipart/form-data">
+            <form action="/api/admin/documents" method="post" encType="multipart/form-data">
               <input type="hidden" name="pathname" value="/admin/documents" />
+              <input type="hidden" name="intent" value="save" />
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 5 }}>
                   <TextField fullWidth label="Titulo" name="title" required />
@@ -71,6 +67,9 @@ export default async function DocumentsAdminPage({
                 <Grid size={{ xs: 12 }}>
                   <Stack spacing={1}>
                     <Typography fontWeight={700}>Arquivo</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {COMMON_DOCUMENT_TYPES_HINT}
+                    </Typography>
                     <input type="file" name="file" required />
                   </Stack>
                 </Grid>
@@ -98,8 +97,9 @@ export default async function DocumentsAdminPage({
                     </Typography>
                   </Stack>
 
-                  <form action={upsertDocumentAction} encType="multipart/form-data">
+                  <form action="/api/admin/documents" method="post" encType="multipart/form-data">
                     <input type="hidden" name="pathname" value="/admin/documents" />
+                    <input type="hidden" name="intent" value="save" />
                     <input type="hidden" name="id" value={document.id} />
                     <input type="hidden" name="existingStoragePath" value={document.storagePath} />
                     <input type="hidden" name="existingFileName" value={document.fileName} />
@@ -124,6 +124,9 @@ export default async function DocumentsAdminPage({
                       <Grid size={{ xs: 12 }}>
                         <Stack spacing={1}>
                           <Typography fontWeight={700}>Substituir arquivo</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {COMMON_DOCUMENT_TYPES_HINT}
+                          </Typography>
                           <input type="file" name="file" />
                         </Stack>
                       </Grid>
@@ -137,8 +140,13 @@ export default async function DocumentsAdminPage({
 
                   <Divider />
 
-                  <form action={document.isActive ? archiveDocumentAction : restoreDocumentAction}>
+                  <form action="/api/admin/documents" method="post">
                     <input type="hidden" name="pathname" value="/admin/documents" />
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value={document.isActive ? "archive" : "restore"}
+                    />
                     <input type="hidden" name="id" value={document.id} />
                     <Button type="submit" color={document.isActive ? "warning" : "success"}>
                       {document.isActive ? "Arquivar" : "Reativar"}

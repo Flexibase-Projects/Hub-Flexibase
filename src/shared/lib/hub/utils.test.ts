@@ -36,6 +36,7 @@ describe("hub utils", () => {
         title: "Helpdesk",
         description: "Chamados",
         targetUrl: "https://example.internal",
+        iconKey: "SupportAgentRounded",
         imageUrl: null,
         accentColor: null,
         sortOrder: 0,

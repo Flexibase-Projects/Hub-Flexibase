@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 
 import { requireAdminViewer } from "@/modules/auth/server";
-import { updateUserAccessAction } from "@/modules/admin/actions";
 import { getAdminDashboardData } from "@/modules/admin/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
 import { formatDate } from "@/shared/lib/hub/utils";
@@ -38,6 +37,7 @@ export default async function UsersAdminPage({
   const data = await getAdminDashboardData();
   const feedback = await getPageFeedback(Promise.resolve(params));
   const query = getSearchValue(params.q).toLowerCase();
+  const pageWarning = data.authUsersError ?? data.loadError;
   const users = data.adminUsers.filter((user) => {
     if (!query) {
       return true;
@@ -59,7 +59,7 @@ export default async function UsersAdminPage({
       </Stack>
 
       <PageFeedbackAlert feedback={feedback} />
-      {data.loadError ? <Alert severity="warning">{data.loadError}</Alert> : null}
+      {pageWarning ? <Alert severity="warning">{pageWarning}</Alert> : null}
 
       <form method="get">
         <TextField
@@ -108,7 +108,7 @@ export default async function UsersAdminPage({
                     {user.lastSignInAt ? formatDate(user.lastSignInAt) : "Nunca acessou"}
                   </TableCell>
                   <TableCell align="center">
-                    <form action={updateUserAccessAction}>
+                    <form action="/api/admin/users/access" method="post">
                       <input type="hidden" name="pathname" value="/admin/users" />
                       <input type="hidden" name="userId" value={user.id} />
                       <input type="hidden" name="query" value={query} />

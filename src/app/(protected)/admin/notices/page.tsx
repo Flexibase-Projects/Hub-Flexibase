@@ -1,7 +1,6 @@
 import { Alert, Button, Card, CardContent, Grid, MenuItem, Stack, TextField, Typography } from "@mui/material";
 
 import { requireAdminViewer } from "@/modules/auth/server";
-import { archiveNoticeAction, restoreNoticeAction, upsertNoticeAction } from "@/modules/admin/actions";
 import { getAdminDashboardData } from "@/modules/admin/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
 import { formatDate } from "@/shared/lib/hub/utils";
@@ -32,8 +31,9 @@ export default async function NoticesAdminPage({ searchParams }: NoticesAdminPag
         <CardContent>
           <Stack spacing={2}>
             <Typography variant="h4">Nova notificacao</Typography>
-            <form action={upsertNoticeAction}>
+            <form action="/api/admin/notices" method="post">
               <input type="hidden" name="pathname" value="/admin/notices" />
+              <input type="hidden" name="intent" value="save" />
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Titulo" name="title" required />
@@ -69,8 +69,9 @@ export default async function NoticesAdminPage({ searchParams }: NoticesAdminPag
               <CardContent>
                 <Stack spacing={2}>
                   <Typography color="text.secondary">{formatDate(notice.createdAt)}</Typography>
-                  <form action={upsertNoticeAction}>
+                  <form action="/api/admin/notices" method="post">
                     <input type="hidden" name="pathname" value="/admin/notices" />
+                    <input type="hidden" name="intent" value="save" />
                     <input type="hidden" name="id" value={notice.id} />
                     <Grid container spacing={2}>
                       <Grid size={{ xs: 12, md: 6 }}>
@@ -97,8 +98,13 @@ export default async function NoticesAdminPage({ searchParams }: NoticesAdminPag
                     </Grid>
                   </form>
 
-                  <form action={notice.isActive ? archiveNoticeAction : restoreNoticeAction}>
+                  <form action="/api/admin/notices" method="post">
                     <input type="hidden" name="pathname" value="/admin/notices" />
+                    <input
+                      type="hidden"
+                      name="intent"
+                      value={notice.isActive ? "archive" : "restore"}
+                    />
                     <input type="hidden" name="id" value={notice.id} />
                     <Button type="submit" color={notice.isActive ? "warning" : "success"}>
                       {notice.isActive ? "Arquivar" : "Reativar"}

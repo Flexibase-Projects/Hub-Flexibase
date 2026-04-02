@@ -8,12 +8,12 @@ export function buildFeedbackUrl(
   kind: PageFeedback["kind"],
   message: string
 ) {
-  const params = new URLSearchParams({
-    kind,
-    message,
-  });
+  const [basePath, queryString = ""] = pathname.split("?", 2);
+  const params = new URLSearchParams(queryString);
+  params.set("kind", kind);
+  params.set("message", message);
 
-  return `${pathname}?${params.toString()}`;
+  return `${basePath}?${params.toString()}`;
 }
 
 export async function getPageFeedback(

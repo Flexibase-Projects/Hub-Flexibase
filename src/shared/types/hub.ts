@@ -1,3 +1,5 @@
+import type { SystemIconKey } from "@/shared/lib/hub/system-icons";
+
 export type HubRoleKey = "operator" | "employee" | "manager" | "admin";
 
 export interface HubUserProfile {
@@ -24,6 +26,7 @@ export interface HubSystemLink {
   title: string;
   description: string;
   targetUrl: string;
+  iconKey: SystemIconKey;
   imageUrl: string | null;
   accentColor: string | null;
   sortOrder: number;

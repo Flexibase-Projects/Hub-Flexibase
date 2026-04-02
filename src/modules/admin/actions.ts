@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminViewer } from "@/modules/auth/server";
+import { DEFAULT_SYSTEM_ICON_KEY } from "@/shared/lib/hub/system-icons";
 import { buildFeedbackUrl } from "@/shared/lib/feedback";
 import { buildSoftDeleteWindow, slugify } from "@/shared/lib/hub/utils";
 import { DEFAULT_BANNER_TITLE, DOCUMENT_CATEGORIES } from "@/shared/lib/hub/constants";
@@ -230,6 +231,7 @@ export async function upsertSystemAction(formData: FormData) {
     title: formData.get("title"),
     description: formData.get("description"),
     targetUrl: formData.get("targetUrl"),
+    iconKey: formData.get("iconKey") || DEFAULT_SYSTEM_ICON_KEY,
   });
 
   if (!parsed.success) {
@@ -244,6 +246,7 @@ export async function upsertSystemAction(formData: FormData) {
       title: parsed.data.title,
       description: parsed.data.description,
       target_url: parsed.data.targetUrl,
+      icon_key: parsed.data.iconKey,
       image_url: null,
       accent_color: null,
       sort_order: 0,
@@ -261,10 +264,24 @@ export async function upsertSystemAction(formData: FormData) {
   finalizeAction(pathname, "Sistema salvo com sucesso.");
 }
 
-export async function archiveSystemAction(formData: FormData) {
+export async function deleteSystemAction(formData: FormData) {
   const pathname = String(formData.get("pathname") || "/admin/systems");
   const systemId = String(formData.get("id") || "");
+  const confirmationText = normalizeOptional(formData.get("confirmationText"));
   const hub = await getAdminHub();
+  const { data: system, error: systemError } = await hub
+    .from("hub_system_links")
+    .select("title")
+    .eq("id", systemId)
+    .maybeSingle();
+
+  if (systemError || !system) {
+    handleActionFailure(pathname, "Sistema nao encontrado para exclusao.");
+  }
+
+  if (confirmationText !== system.title) {
+    handleActionFailure(pathname, "Digite o nome do sistema exatamente para confirmar.");
+  }
 
   await hub
     .from("hub_system_links")
@@ -274,7 +291,7 @@ export async function archiveSystemAction(formData: FormData) {
     })
     .eq("id", systemId);
 
-  finalizeAction(pathname, "Sistema removido.");
+  finalizeAction(pathname, "Sistema excluido com sucesso.");
 }
 
 export async function restoreSystemAction(formData: FormData) {

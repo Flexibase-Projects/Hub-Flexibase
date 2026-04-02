@@ -1,8 +1,6 @@
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import {
   Alert,
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
@@ -14,6 +12,7 @@ import {
 
 import { getViewerContext } from "@/modules/auth/server";
 import { BannerCarousel } from "@/modules/hub/components/banner-carousel";
+import { DocumentDownloadButton } from "@/modules/hub/components/document-download-button";
 import { SystemLinkButton } from "@/modules/hub/components/system-link-button";
 import { getHubHomeData } from "@/modules/hub/queries";
 import { getPageFeedback } from "@/shared/lib/feedback";
@@ -30,28 +29,6 @@ const corporatePanelSx = {
   borderColor: "divider",
   background: "linear-gradient(180deg, rgba(15,76,129,0.03) 0%, rgba(15,76,129,0.01) 100%)",
 };
-
-const legacySystems = [
-  { title: "Chamado de Manutencao", href: "http://192.168.1.251/manu/" },
-  { title: "Chamado de TI", href: "http://192.168.1.251/desk/index.php" },
-  { title: "CRM Nectar", href: "https://app.nectarcrm.com.br/crm/?language=pt-BR" },
-  { title: "Custos e Manutencoes", href: "http://192.168.1.251/custos/" },
-  { title: "Focco Producao", href: "http://192.168.1.99/proweb/Authentication/Login" },
-  { title: "Focco Teste", href: "http://192.168.1.99/tesweb/Authentication/Login" },
-  {
-    title: "Focco Web",
-    href: "http://192.168.1.68:8080/f3iConnect/app/login.faces;jsessionid=73370BF61D5ABA520351E1CC10E4BC6B",
-  },
-  { title: "Gestao de Arquivos", href: "http://192.168.1.251/docs/knowledgebase.php" },
-  { title: "Marketing", href: "http://192.168.1.251/marketing/" },
-  { title: "PCM Solucoes", href: "https://192.168.1.2/" },
-  { title: "Projetos Executivos", href: "http://192.168.1.251/exec/" },
-  { title: "Registro de Ocorrencias", href: "http://192.168.1.251/registro/" },
-  { title: "RH-Documentos", href: "http://192.168.1.251/docs/knowledgebase.php?category=36" },
-  { title: "Seguranca de Trabalho", href: "http://192.168.1.251/segra/knowledgebase.php" },
-  { title: "Site Flexibase", href: "https://flexibase.com.br/" },
-  { title: "Solicitacao de Projetos", href: "http://192.168.1.251/projetos/" },
-].sort((left, right) => left.title.localeCompare(right.title, "pt-BR"));
 
 export default async function HubPage({ searchParams }: HubPageProps) {
   const viewer = await getViewerContext();
@@ -112,44 +89,32 @@ export default async function HubPage({ searchParams }: HubPageProps) {
                 }}
               >
                 {registeredSystems.map((system) => (
-                  <SystemLinkButton key={system.id} href={system.targetUrl} title={system.title} />
+                  <SystemLinkButton
+                    key={system.id}
+                    href={system.targetUrl}
+                    title={system.title}
+                    iconKey={system.iconKey}
+                    targetKey={system.id}
+                  />
                 ))}
               </Box>
             </Stack>
           </Box>
-        ) : null}
-
-        <Box
-          sx={{
-            ...corporatePanelSx,
-            p: { xs: 2, md: 2.5 },
-          }}
-        >
-          <Stack spacing={2}>
+        ) : (
+          <Box
+            sx={{
+              ...corporatePanelSx,
+              p: { xs: 2, md: 2.5 },
+            }}
+          >
             <Stack spacing={0.5}>
-              <Typography variant="h5">Atalhos legados</Typography>
+              <Typography variant="h5">Nenhum sistema cadastrado</Typography>
               <Typography color="text.secondary">
-                Links antigos mantidos temporariamente fora do cadastro do painel.
+                Use o painel administrativo para cadastrar os sistemas internos exibidos aqui.
               </Typography>
             </Stack>
-
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, minmax(0, 1fr))",
-                  lg: "repeat(4, minmax(0, 1fr))",
-                },
-                gap: 1.5,
-              }}
-            >
-              {legacySystems.map((system) => (
-                <SystemLinkButton key={system.title} href={system.href} title={system.title} />
-              ))}
-            </Box>
-          </Stack>
-        </Box>
+          </Box>
+        )}
       </Stack>
 
       <Stack spacing={2}>
@@ -196,14 +161,7 @@ export default async function HubPage({ searchParams }: HubPageProps) {
                             {formatBytes(document.fileSize)}
                           </Typography>
                         </Stack>
-                        <Button
-                          href={`/api/documents/${document.id}/download`}
-                          variant="contained"
-                          startIcon={<DescriptionRoundedIcon />}
-                          sx={{ borderRadius: 2, alignSelf: { xs: "stretch", sm: "center" } }}
-                        >
-                          Baixar documento
-                        </Button>
+                        <DocumentDownloadButton documentId={document.id} />
                       </Stack>
                     </Stack>
                   </CardContent>

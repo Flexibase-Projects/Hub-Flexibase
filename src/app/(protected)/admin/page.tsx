@@ -21,30 +21,42 @@ export default async function AdminPage() {
       value: data.systems.length,
       description: "Links internos simples em ordem alfabetica.",
       href: "/admin/systems",
+      cta: "Gerenciar sistemas",
     },
     {
       title: "Banner",
       value: data.banners.length,
       description: "Imagem principal exibida no topo da home.",
       href: "/admin/banners",
+      cta: "Gerenciar banner",
     },
     {
       title: "Comunicados",
       value: data.notices.length,
       description: "Avisos e notificacoes para a home do hub.",
       href: "/admin/notices",
+      cta: "Gerenciar comunicados",
     },
     {
       title: "Documentos",
       value: data.documents.length,
       description: "Arquivos internos com titulo, categoria e descricao.",
       href: "/admin/documents",
+      cta: "Gerenciar documentos",
     },
     {
       title: "Usuarios",
       value: data.adminUsers.length,
       description: "Usuarios do Supabase Auth com toggle de admin.",
       href: "/admin/users",
+      cta: "Gerenciar usuarios",
+    },
+    {
+      title: "Dashboard de uso",
+      value: `${data.systems.length} sistemas`,
+      description: "Acesso ao painel analitico com uso, performance e atrito do HUB.",
+      href: "/admin/dashboard",
+      cta: "Abrir dashboard",
     },
   ];
 
@@ -71,7 +83,7 @@ export default async function AdminPage() {
                   <Typography variant="h3">{card.value}</Typography>
                   <Typography color="text.secondary">{card.description}</Typography>
                   <Button href={card.href} variant="contained">
-                    Gerenciar {card.title.toLowerCase()}
+                    {card.cta}
                   </Button>
                 </Stack>
               </CardContent>

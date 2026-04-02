@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getViewerContext } from "@/modules/auth/server";
+import { recordAnalyticsEvent } from "@/shared/lib/analytics/server";
 import { createAdminSupabaseClient } from "@/shared/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
@@ -13,6 +14,8 @@ interface DownloadRouteProps {
 
 export async function GET(request: Request, { params }: DownloadRouteProps) {
   const viewer = await getViewerContext();
+  const requestUrl = new URL(request.url);
+  const sessionId = requestUrl.searchParams.get("sid");
 
   if (!viewer) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -60,6 +63,18 @@ export async function GET(request: Request, { params }: DownloadRouteProps) {
 
   if (signedUrl.error || !signedUrl.data.signedUrl) {
     return NextResponse.json({ error: "Não foi possível gerar o download." }, { status: 500 });
+  }
+
+  if (typeof sessionId === "string" && sessionId.trim()) {
+    await recordAnalyticsEvent({
+      sessionId,
+      viewer,
+      eventName: "document_download",
+      path: "/hub",
+      targetType: "document",
+      targetKey: id,
+      targetLabel: String(document.title ?? id),
+    });
   }
 
   return NextResponse.redirect(signedUrl.data.signedUrl);

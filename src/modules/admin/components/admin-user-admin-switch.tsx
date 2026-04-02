@@ -3,8 +3,6 @@
 import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { useRef } from "react";
 
-import { updateUserAccessAction } from "@/modules/admin/actions";
-
 interface AdminUserAdminSwitchProps {
   userId: string;
   checked: boolean;
@@ -24,7 +22,8 @@ export function AdminUserAdminSwitch({
     <Box
       component="form"
       ref={formRef}
-      action={updateUserAccessAction}
+      action="/api/admin/users/access"
+      method="post"
       sx={{ display: "inline-flex" }}
     >
       <input type="hidden" name="pathname" value={pathname} />

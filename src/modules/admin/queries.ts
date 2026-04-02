@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 
+import { normalizeSystemIconKey } from "@/shared/lib/hub/system-icons";
 import { createAdminSupabaseClient } from "@/shared/lib/supabase/admin";
 import { getSupabaseEnv } from "@/shared/lib/supabase/env";
 import { createServerSupabaseClient } from "@/shared/lib/supabase/server";
@@ -58,6 +59,12 @@ export interface AdminDashboardData {
     deletedAt: string | null;
   }>;
   loadError: string | null;
+  authUsersError: string | null;
+}
+
+interface AuthUsersResult {
+  users: User[] | null;
+  errorMessage: string | null;
 }
 
 function createEmptyAdminDashboardData(loadError: string | null = null): AdminDashboardData {
@@ -75,6 +82,7 @@ function createEmptyAdminDashboardData(loadError: string | null = null): AdminDa
     userRoles: [],
     userDepartments: [],
     loadError,
+    authUsersError: null,
   };
 }
 
@@ -96,11 +104,15 @@ function resolveBannerImageUrl(id: string, imageUrl: string | null) {
   return imageUrl;
 }
 
-async function listAllAuthUsers() {
+async function listAllAuthUsers(): Promise<AuthUsersResult> {
   const adminSupabase = createAdminSupabaseClient();
 
   if (!adminSupabase) {
-    return null;
+    return {
+      users: null,
+      errorMessage:
+        "Defina SUPABASE_SERVICE_ROLE_KEY para listar todos os usuarios do Supabase Auth.",
+    };
   }
 
   const users: User[] = [];
@@ -114,7 +126,10 @@ async function listAllAuthUsers() {
     });
 
     if (error) {
-      return null;
+      return {
+        users: null,
+        errorMessage: `Falha ao consultar o Supabase Auth: ${error.message}`,
+      };
     }
 
     const batch = data.users ?? [];
@@ -127,19 +142,31 @@ async function listAllAuthUsers() {
     page += 1;
   }
 
-  return users;
+  return {
+    users,
+    errorMessage: null,
+  };
 }
 
 export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const supabase = await createServerSupabaseClient();
+  const adminSupabase = createAdminSupabaseClient();
 
-  if (!supabase) {
+  if (!supabase && !adminSupabase) {
     return createEmptyAdminDashboardData(
       "Supabase ainda nao esta configurado para o painel administrativo."
     );
   }
 
-  const hub = supabase.schema(getSupabaseEnv().schema);
+  const hubClient = adminSupabase ?? supabase;
+
+  if (!hubClient) {
+    return createEmptyAdminDashboardData(
+      "Supabase ainda nao esta configurado para o painel administrativo."
+    );
+  }
+
+  const hub = hubClient.schema(getSupabaseEnv().schema);
 
   const [
     departmentsResult,
@@ -153,7 +180,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     rolesResult,
     userRolesResult,
     userDepartmentsResult,
-    authUsers,
+    authUsersResult,
   ] = await Promise.all([
     hub.from("hub_departments").select("*").order("name", { ascending: true }),
     hub.from("hub_system_links").select("*"),
@@ -183,12 +210,6 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     userDepartmentsResult.error,
   ].filter(Boolean);
 
-  if (possibleErrors.length > 0) {
-    return createEmptyAdminDashboardData(
-      "O schema do HUB ainda nao foi aplicado ou o usuario nao possui acesso aos dados administrativos."
-    );
-  }
-
   const roles = (rolesResult.data ?? []).map((row) => ({
     id: row.id as string,
     key: row.key as HubRoleKey,
@@ -214,29 +235,47 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   }));
 
   const profileById = new Map(profiles.map((profile) => [profile.id, profile]));
+  const authUsers = authUsersResult.users;
 
   const adminUsers = sortByLabel(
-    (authUsers ?? []).map((user) => {
-      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-      const email = String(user.email ?? "");
-      const profile = profileById.get(String(user.id));
-      const fallbackName = email.split("@")[0] || "Colaborador";
-      const fullName =
-        profile?.fullName ||
-        (typeof metadata.full_name === "string" ? metadata.full_name : fallbackName);
+    authUsers
+      ? authUsers.map((user) => {
+          const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+          const email = String(user.email ?? "");
+          const profile = profileById.get(String(user.id));
+          const fallbackName = email.split("@")[0] || "Colaborador";
+          const fullName =
+            profile?.fullName ||
+            (typeof metadata.full_name === "string" ? metadata.full_name : fallbackName);
 
-      return {
-        id: String(user.id),
-        email,
-        fullName,
-        createdAt: String(user.created_at ?? ""),
-        lastSignInAt:
-          typeof user.last_sign_in_at === "string" ? user.last_sign_in_at : null,
-        isAdmin: activeAdminUserIds.has(String(user.id)),
-      };
-    }),
+          return {
+            id: String(user.id),
+            email,
+            fullName,
+            createdAt: String(user.created_at ?? profile?.createdAt ?? ""),
+            lastSignInAt:
+              typeof user.last_sign_in_at === "string" ? user.last_sign_in_at : null,
+            isAdmin: activeAdminUserIds.has(String(user.id)),
+          };
+        })
+      : profiles.map((profile) => ({
+          id: profile.id,
+          email: profile.email,
+          fullName: profile.fullName,
+          createdAt: profile.createdAt,
+          lastSignInAt: null,
+          isAdmin: activeAdminUserIds.has(profile.id),
+        })),
     (user) => `${user.fullName} ${user.email}`
   );
+
+  const loadMessages: string[] = [];
+
+  if (possibleErrors.length > 0) {
+    loadMessages.push(
+      "Alguns dados administrativos nao puderam ser carregados. Verifique o acesso do usuario ao schema do HUB."
+    );
+  }
 
   return {
     departments: (departmentsResult.data ?? []).map((row) => ({
@@ -253,6 +292,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         title: row.title as string,
         description: row.description as string,
         targetUrl: row.target_url as string,
+        iconKey: normalizeSystemIconKey(row.icon_key as string | null | undefined),
         imageUrl: (row.image_url as string | null) ?? null,
         accentColor: (row.accent_color as string | null) ?? null,
         sortOrder: row.sort_order as number,
@@ -325,6 +365,11 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       departmentId: row.department_id as string,
       deletedAt: (row.deleted_at as string | null) ?? null,
     })),
-    loadError: authUsers === null ? "Nao foi possivel carregar os usuarios do Supabase Auth." : null,
+    loadError: loadMessages.length > 0 ? loadMessages.join(" ") : null,
+    authUsersError: authUsersResult.errorMessage
+      ? authUsers
+        ? authUsersResult.errorMessage
+        : "Nao foi possivel carregar todos os usuarios do Supabase Auth. Exibindo apenas os perfis ja conhecidos do HUB."
+      : null,
   };
 }

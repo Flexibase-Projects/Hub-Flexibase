@@ -1,4 +1,4 @@
-export const HUB_SCHEMA_DEFAULT = "hub_flexibase";
+export const HUB_SCHEMA_DEFAULT = "hub";
 export const DOCUMENT_BUCKET = "hub-documents";
 export const ASSET_BUCKET = "hub-assets";
 
@@ -29,13 +29,17 @@ export function getSupabaseEnv() {
   const serviceRoleKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? "";
 
+  const configuredSchema =
+    process.env.NEXT_PUBLIC_HUB_SUPABASE_SCHEMA?.trim() ||
+    HUB_SCHEMA_DEFAULT;
+
   return {
     url,
     publishableKey,
     serviceRoleKey,
-    schema:
-      process.env.NEXT_PUBLIC_HUB_SUPABASE_SCHEMA?.trim() ||
-      HUB_SCHEMA_DEFAULT,
+    // `hub_flexibase` remains the physical schema, but this app talks to the
+    // exposed `hub` API schema to stay compatible with PostgREST settings.
+    schema: configuredSchema === "hub_flexibase" ? "hub" : configuredSchema,
     supportEmail:
       process.env.FLEXIBASE_SUPPORT_EMAIL?.trim() ||
       "suporte@flexibase.com.br",
